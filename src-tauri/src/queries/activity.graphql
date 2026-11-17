@@ -1,0 +1,25 @@
+query Activity($ids: [ID!]!, $starPage: Int!) {
+  nodes(ids: $ids) {
+    ... on Repository {
+      id
+      stargazerCount
+      watchers { totalCount }
+      openIssues: issues(states: OPEN) { totalCount }
+      openPullRequests: pullRequests(states: OPEN) { totalCount }
+      releases { totalCount }
+      stargazers(first: $starPage, orderBy: { field: STARRED_AT, direction: DESC }) {
+        pageInfo { hasNextPage endCursor }
+        edges { starredAt node { login avatarUrl } }
+      }
+      issues(first: 10, orderBy: { field: CREATED_AT, direction: DESC }) {
+        nodes { number title url createdAt author { __typename login avatarUrl } }
+      }
+      pullRequests(first: 10, orderBy: { field: CREATED_AT, direction: DESC }) {
+        nodes { number title url createdAt author { __typename login avatarUrl } }
+      }
+      forks(first: 10, orderBy: { field: CREATED_AT, direction: DESC }) {
+        nodes { nameWithOwner url createdAt owner { login avatarUrl } }
+      }
+    }
+  }
+}

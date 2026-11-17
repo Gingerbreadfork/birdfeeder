@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="hedge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2d5140"/>
+      <stop offset="1" stop-color="#1a3226"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="url(#hedge)"/>
+  <g transform="translate(512 506) scale(1.14) translate(-512 -540)">
+    <rect x="204" y="748" width="616" height="48" rx="24" fill="#eadfc2"/>
+    <g stroke="#ee8140" stroke-width="22" stroke-linecap="round">
+      <line x1="458" y1="700" x2="458" y2="752"/>
+      <line x1="556" y1="700" x2="556" y2="752"/>
+    </g>
+    <path d="M348 500 L348 592 L214 470 L262 400 Z" fill="#d2921c" stroke="#d2921c" stroke-width="44" stroke-linejoin="round"/>
+    <rect x="318" y="326" width="388" height="388" rx="110" fill="#f4bc3e"/>
+    <path d="M572 500 C486 486 402 532 366 618 C446 660 552 650 580 574 C590 546 586 520 572 500 Z" fill="#13241b"/>
+    <path d="M702 442 L792 478 L702 514 Z" fill="#ee8140" stroke="#ee8140" stroke-width="18" stroke-linejoin="round"/>
+    <circle cx="614" cy="450" r="26" fill="#13241b"/>
+  </g>
+</svg>

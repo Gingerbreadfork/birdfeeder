@@ -1,0 +1,22 @@
+query Releases($ids: [ID!]!) {
+  nodes(ids: $ids) {
+    ... on Repository {
+      id
+      releases(first: 20, orderBy: { field: CREATED_AT, direction: DESC }) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          tagName
+          name
+          url
+          isDraft
+          isPrerelease
+          publishedAt
+          author { __typename login avatarUrl }
+          releaseAssets(first: 50) {
+            nodes { name downloadCount size }
+          }
+        }
+      }
+    }
+  }
+}

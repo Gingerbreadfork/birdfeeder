@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Birdfeeder",
+  "version": "0.1.0",
+  "identifier": "io.github.gingerbreadfork.birdfeeder",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Birdfeeder",
+        "width": 1200,
+        "height": 780,
+        "minWidth": 440,
+        "minHeight": 520,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost ws://127.0.0.1:1420"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "publisher": "Birdfeeder",
+    "homepage": "https://github.com/Gingerbreadfork/birdfeeder",
+    "license": "MIT",
+    "shortDescription": "See who has been visiting your GitHub repositories",
+    "longDescription": "Birdfeeder watches a GitHub account and tells you when something lands: a star, a fork, a follower, an issue, a mention, or a release being downloaded.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

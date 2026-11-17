@@ -1,0 +1,41 @@
+[package]
+name = "birdfeeder"
+version = "0.1.0"
+description = "A desktop app that tells you who has been visiting your GitHub repositories."
+authors = ["gingerbreadfork"]
+license = "MIT"
+repository = "https://github.com/Gingerbreadfork/birdfeeder"
+edition = "2024"
+
+[lib]
+name = "birdfeeder_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+anyhow = "1.0.104"
+chrono = { version = "0.4.45", features = ["serde"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+keyring = "4.2.0"
+reqwest = { version = "0.13.5", default-features = false, features = ["gzip", "json", "rustls"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tokio = { version = "1.54.1", features = ["time", "sync", "process", "macros", "rt"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+notify-rust = "4"

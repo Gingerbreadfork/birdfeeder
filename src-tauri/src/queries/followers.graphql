@@ -1,0 +1,8 @@
+query Followers($cursor: String) {
+  viewer {
+    followers(first: 100, after: $cursor) {
+      pageInfo { hasNextPage endCursor }
+      nodes { login avatarUrl }
+    }
+  }
+}
