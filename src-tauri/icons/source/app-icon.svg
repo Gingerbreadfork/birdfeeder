@@ -5,8 +5,8 @@
       <stop offset="1" stop-color="#1a3226"/>
     </linearGradient>
   </defs>
-  <rect x="64" y="64" width="896" height="896" rx="208" fill="url(#hedge)"/>
-  <g transform="translate(512 506) scale(1.14) translate(-512 -540)">
+  <rect width="1024" height="1024" rx="238" fill="url(#hedge)"/>
+  <g transform="translate(512 505) scale(1.303) translate(-512 -540)">
     <rect x="204" y="748" width="616" height="48" rx="24" fill="#eadfc2"/>
     <g stroke="#ee8140" stroke-width="22" stroke-linecap="round">
       <line x1="458" y1="700" x2="458" y2="752"/>
