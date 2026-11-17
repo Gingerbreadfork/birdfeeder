@@ -1,6 +1,6 @@
 [package]
 name = "birdfeeder"
-version = "0.1.0"
+version = "0.1.1"
 description = "A desktop app that tells you who has been visiting your GitHub repositories."
 authors = ["gingerbreadfork"]
 license = "MIT"
