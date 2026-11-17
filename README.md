@@ -114,6 +114,11 @@ notification has its own switch.
 icon turns gold when something is waiting. It can start when you log in, and it checks as
 often as every minute or as rarely as once a day.
 
+**Keeps itself up to date.** Birdfeeder looks for a newer release when it starts and every
+few hours after, and tells you when there is one. Installing it takes one click, or none
+if you switch on automatic installs. The check reads one file from this project's releases
+and sends nothing about you.
+
 **Only reads.** Birdfeeder cannot star, comment, close or mark anything as read. What it
 learns stays in a SQLite file on your computer. There is no server, no account to create
 and no telemetry.
@@ -150,6 +155,11 @@ On GNOME the tray icon needs the
 Without it everything else still works: Ctrl+Q quits, and opening Birdfeeder again brings
 the window back.
 
+After that Birdfeeder updates itself, whichever package you chose. Every package is signed
+and the signature is checked before anything is installed. A `.deb` or `.rpm` update asks
+for your password, since it goes through the package manager. Version 0.1.0 came before
+the updater, so it has to be replaced by hand once.
+
 ## Signing in
 
 If you use the [GitHub CLI](https://cli.github.com) and have run `gh auth login`, there is
@@ -176,8 +186,8 @@ has its own tab, along with the best-followed people who have come by.
 Ctrl+R checks now. Ctrl+1 to Ctrl+5 switch tabs. Esc clears the filters. Ctrl+Q quits.
 
 Settings holds the rest: how often to check, whether to include forks, archived
-repositories and organisation repositories, which events notify, and which release files
-to leave out of the download count.
+repositories and organisation repositories, which events notify, which release files to
+leave out of the download count, and whether updates install by themselves.
 
 ## Under the hood
 
@@ -215,8 +225,23 @@ You need Rust, Node 24, pnpm and
 pnpm install
 pnpm tauri dev              # run it
 pnpm tauri dev -- -- --demo # run it on sample data
-pnpm tauri build            # build packages into src-tauri/target/release/bundle
+pnpm app:build              # build packages into src-tauri/target/release/bundle
 ```
+
+`app:build` is `tauri build` with two variables set that the AppImage step needs on a
+current Linux distribution.
+
+Packaging signs each file for the updater, so it needs the private key in
+`TAURI_SIGNING_PRIVATE_KEY` (the key itself or a path to it) and its password in
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. To build without a key, leave the updater files out:
+
+```sh
+pnpm app:build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+```
+
+Publishing a release on GitHub runs a workflow that builds the packages, attaches them to
+the release, and adds the `latest.json` the updater reads. It takes the key from
+repository secrets.
 
 Checks:
 

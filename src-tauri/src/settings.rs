@@ -71,6 +71,10 @@ pub struct Settings {
     pub celebrate: bool,
     pub keep_running: bool,
     pub autostart: bool,
+    /// Looks for a newer release at launch and every few hours.
+    pub check_updates: bool,
+    /// Installs a newer release as soon as it is found, then restarts.
+    pub install_updates: bool,
     /// Asset name patterns left out of download counts. `*` matches anything.
     pub ignore_assets: Vec<String>,
 }
@@ -90,6 +94,8 @@ impl Default for Settings {
             celebrate: true,
             keep_running: true,
             autostart: false,
+            check_updates: true,
+            install_updates: false,
             ignore_assets: [
                 "*.sig",
                 "*.asc",

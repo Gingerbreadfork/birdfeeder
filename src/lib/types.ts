@@ -282,6 +282,8 @@ export interface Settings {
   celebrate: boolean;
   keep_running: boolean;
   autostart: boolean;
+  check_updates: boolean;
+  install_updates: boolean;
   ignore_assets: string[];
 }
 

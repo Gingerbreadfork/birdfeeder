@@ -3,7 +3,7 @@
   import Bird from "./Bird.svelte";
   import TokenForm from "./TokenForm.svelte";
   import { api, open } from "./api";
-  import { num } from "./format";
+  import { clock, num } from "./format";
   import { watcher } from "./state.svelte";
   import type { AuthInfo, NotifyKinds, Settings } from "./types";
 
@@ -56,7 +56,7 @@
     error = null;
     try {
       await api.saveSettings($state.snapshot(settings));
-      watcher.celebrates = settings.celebrate;
+      watcher.applySettings($state.snapshot(settings));
       saved = true;
       clearTimeout(fade);
       fade = setTimeout(() => (saved = false), 1600);
@@ -77,6 +77,24 @@
     await api.clearToken();
     await loadAuth();
   }
+
+  let checking = $state(false);
+
+  async function checkNow() {
+    checking = true;
+    await watcher.checkForUpdate();
+    checking = false;
+  }
+
+  const updateStatus = $derived.by(() => {
+    if (watcher.updateProgress !== null) return "Downloading and installing…";
+    if (watcher.updateError) return `The last check failed: ${watcher.updateError}`;
+    if (watcher.update) return watcher.update.notes.split("\n").find((line) => line.trim()) ?? "";
+    if (watcher.updateCheckedAt) {
+      return `Up to date, checked at ${clock(new Date(watcher.updateCheckedAt).toISOString())}.`;
+    }
+    return "";
+  });
 
   const budget = $derived(
     Object.entries(watcher.status.rates)
@@ -234,6 +252,64 @@
     <button class="btn" onclick={() => api.quit()}>Quit Birdfeeder</button>
   </section>
 
+  <section class="panel">
+    <h2>Updates</h2>
+    {#if watcher.status.demo}
+      <p>Birdfeeder does not look for updates while it is showing sample data.</p>
+    {:else}
+      <label class="row">
+        <input type="checkbox" class="switch" bind:checked={settings.check_updates} onchange={save} />
+        <span>
+          Check for updates
+          <small>At launch and every few hours, from this project's releases on GitHub.</small>
+        </span>
+      </label>
+      <label class="row">
+        <input
+          type="checkbox"
+          class="switch"
+          bind:checked={settings.install_updates}
+          onchange={save}
+          disabled={!settings.check_updates}
+        />
+        <span>
+          Install updates automatically
+          <small>
+            Installs a new release when it is found, then restarts. A .deb or .rpm update asks for
+            your password, so it waits until the window is open.
+          </small>
+        </span>
+      </label>
+      <div class="update">
+        <p>
+          {#if watcher.update}
+            <strong>Birdfeeder {watcher.update.version} is available.</strong>
+          {:else}
+            You have Birdfeeder {version}.
+          {/if}
+          {#if updateStatus}<span class="hint">{updateStatus}</span>{/if}
+        </p>
+        {#if watcher.update}
+          <button
+            class="btn primary"
+            disabled={watcher.updateProgress !== null}
+            onclick={() => watcher.installUpdate()}
+          >
+            {watcher.updateProgress === null
+              ? "Install and restart"
+              : watcher.updateProgress > 0
+                ? `Downloading ${Math.round(watcher.updateProgress * 100)}%`
+                : "Installing…"}
+          </button>
+        {:else}
+          <button class="btn" onclick={checkNow} disabled={checking}>
+            {checking ? "Checking…" : "Check now"}
+          </button>
+        {/if}
+      </div>
+    {/if}
+  </section>
+
   {#if error}<p class="error" role="alert">{error}</p>{/if}
 
   <footer>
@@ -281,6 +357,24 @@
     background: var(--surface);
     color: var(--ink-2);
     font-size: var(--fs-sm);
+  }
+
+  .update {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .update p {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .update .hint {
+    overflow-wrap: anywhere;
   }
 
   .warnings {

@@ -8,6 +8,7 @@
   import Repos from "./lib/Repos.svelte";
   import Settings from "./lib/Settings.svelte";
   import SyncBar from "./lib/SyncBar.svelte";
+  import UpdateNotice from "./lib/UpdateNotice.svelte";
   import { api } from "./lib/api";
   import { narrow, watcher, type Page } from "./lib/state.svelte";
 
@@ -89,6 +90,7 @@
         </button>
       {/each}
     </nav>
+    <UpdateNotice />
 
     {#if page === "activity" && !disconnected}
       <div class="rail"><Feed /></div>

@@ -737,6 +737,42 @@ fn starting_over_keeps_only_the_settings() {
 }
 
 #[test]
+fn a_restart_comes_back_the_way_the_window_was_left() {
+    let conn = db::open_in_memory().unwrap();
+    assert_eq!(db::take_window_note(&conn).unwrap(), None);
+
+    db::note_window(&conn, false).unwrap();
+    assert_eq!(db::take_window_note(&conn).unwrap(), Some(false));
+    assert_eq!(
+        db::take_window_note(&conn).unwrap(),
+        None,
+        "a note is used once"
+    );
+
+    db::note_window(&conn, true).unwrap();
+    assert_eq!(db::take_window_note(&conn).unwrap(), Some(true));
+
+    // A note left behind by a restart that never happened is not believed later.
+    db::meta_set(&conn, "window_before_restart", "hidden 1000").unwrap();
+    assert_eq!(db::take_window_note(&conn).unwrap(), None);
+}
+
+#[test]
+fn settings_saved_by_an_older_version_keep_their_values() {
+    let conn = db::open_in_memory().unwrap();
+    db::meta_set(
+        &conn,
+        "settings",
+        r#"{"poll_minutes": 30, "keep_running": false}"#,
+    )
+    .unwrap();
+    let settings = crate::settings::Settings::load(&conn);
+    assert_eq!(settings.poll_minutes, 30);
+    assert!(!settings.keep_running);
+    assert!(settings.check_updates && !settings.install_updates);
+}
+
+#[test]
 fn the_list_pages_past_events_that_share_a_time() {
     let conn = db::open_in_memory().unwrap();
     for n in 0..7 {

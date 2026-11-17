@@ -28,11 +28,15 @@ pub fn run() {
     let demo = std::env::args().any(|arg| arg == DEMO_FLAG);
     let mut builder = tauri::Builder::default();
     if !demo {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            watch::show_window(app);
-        }));
+        // Sample data never contacts GitHub, so it does not look for updates either.
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                watch::show_window(app);
+            }))
+            .plugin(tauri_plugin_updater::Builder::new().build());
     }
     builder
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
@@ -49,12 +53,18 @@ pub fn run() {
                 std::fs::create_dir_all(&dir)?;
                 db::open(&dir.join("birdfeeder.db"))?
             };
+            // A restart for an update comes back the way the window was left.
+            // Otherwise a start at login stays out of sight.
+            let hidden = match db::take_window_note(&conn).ok().flatten() {
+                Some(was_showing) => !was_showing,
+                None => std::env::args().any(|arg| arg == HIDDEN_FLAG),
+            };
             let state = AppState::new(conn, demo);
             let unread = state.status.lock().unwrap().unread;
             app.manage(state);
 
             tray::build(app.handle(), unread)?;
-            if !std::env::args().any(|arg| arg == HIDDEN_FLAG) {
+            if !hidden {
                 watch::show_window(app.handle());
             }
             if !demo {
@@ -92,6 +102,8 @@ pub fn run() {
             commands::save_token,
             commands::clear_token,
             commands::start_over,
+            commands::window_visible,
+            commands::note_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Birdfeeder");

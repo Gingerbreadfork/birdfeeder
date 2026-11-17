@@ -2,6 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { MediaQuery } from "svelte/reactivity";
 import { api, open } from "./api";
 import { LANES, isSpecial, type Lane } from "./kinds";
+import { asksForPassword, checkForUpdate, relaunch, type UpdateHandle } from "./updates";
 import type {
   Downloads,
   EventQuery,
@@ -10,6 +11,7 @@ import type {
   Overview,
   RepoDetail,
   RepoRow,
+  Settings,
   Status,
   WatchEvent,
 } from "./types";
@@ -21,6 +23,8 @@ const PAGE_SIZE = 80;
 const MAX_BATCH = 500;
 /** A look away shorter than this does not count as having been away. */
 const BRIEF_ABSENCE = 60_000;
+/** How often to look for a newer release. */
+const UPDATE_EVERY = 6 * 60 * 60 * 1000;
 /** Below this width the activity list becomes a tab instead of a side rail. */
 export const narrow = new MediaQuery("max-width: 900px");
 
@@ -80,6 +84,21 @@ class Watcher {
   /** Whether a check finished while the window was out of sight. */
   private stale = false;
 
+  /** A newer release the updater found, until it is installed. */
+  update = $state.raw<UpdateHandle | null>(null);
+  /** Download progress from 0 to 1 while an update installs. */
+  updateProgress = $state<number | null>(null);
+  updateError = $state("");
+  updateCheckedAt = $state<number | null>(null);
+  /** Whether the notice about this update was put away. */
+  updateDismissed = $state(false);
+  private updates = { check: false, install: false };
+  private updateTimer: ReturnType<typeof setInterval> | undefined;
+  /** Whether installing asks for a password, which should not happen out of sight. */
+  private asksForPassword = false;
+  /** The version an automatic install was last tried for, so a refusal is not asked again. */
+  private triedVersion: string | null = null;
+
   /** Ticks so relative times stay current. */
   now = $state(Date.now());
 
@@ -114,10 +133,72 @@ class Watcher {
     });
     setInterval(() => (this.now = Date.now()), 30_000);
     this.status = await api.status();
-    this.celebrates = (await api.settings()).celebrate;
+    this.asksForPassword = await asksForPassword();
+    this.applySettings(await api.settings());
     this.marks = await api.marks();
     await this.refresh();
     await this.summarise(null);
+  }
+
+  /** Takes on the settings the window itself acts on. */
+  applySettings(settings: Settings) {
+    this.celebrates = settings.celebrate;
+    const checkChanged = this.updates.check !== settings.check_updates;
+    this.updates = { check: settings.check_updates, install: settings.install_updates };
+    if (checkChanged) this.scheduleUpdateChecks();
+    else void this.installIfWanted();
+  }
+
+  /** Looks for a newer release now and every few hours, while the setting is on. */
+  private scheduleUpdateChecks() {
+    clearInterval(this.updateTimer);
+    this.updateTimer = undefined;
+    // Sample data never contacts GitHub.
+    if (this.status.demo || !this.updates.check) return;
+    void this.checkForUpdate();
+    this.updateTimer = setInterval(() => void this.checkForUpdate(), UPDATE_EVERY);
+  }
+
+  async checkForUpdate() {
+    if (this.status.demo || this.updateProgress !== null) return;
+    try {
+      const found = await checkForUpdate();
+      this.updateCheckedAt = Date.now();
+      this.updateError = "";
+      if (found?.version !== this.update?.version) this.updateDismissed = false;
+      this.update = found;
+      await this.installIfWanted();
+    } catch (reason) {
+      this.updateError = String(reason);
+    }
+  }
+
+  /** Installs a found release by itself when the setting asks for that. */
+  private async installIfWanted() {
+    const update = this.update;
+    if (!update || !this.updates.install || this.triedVersion === update.version) return;
+    // Asking for a password with nobody at the window would only be a surprise.
+    if (this.asksForPassword && !(await api.windowVisible())) return;
+    this.triedVersion = update.version;
+    await this.installUpdate();
+  }
+
+  /** Downloads and installs the release found, then restarts. */
+  async installUpdate() {
+    const update = this.update;
+    if (!update || this.updateProgress !== null) return;
+    this.updateProgress = 0;
+    this.updateError = "";
+    try {
+      await update.install((fraction) => (this.updateProgress = fraction));
+      await api.noteWindow();
+      await relaunch();
+    } catch (reason) {
+      this.updateError = String(reason);
+      this.updateDismissed = false;
+    } finally {
+      this.updateProgress = null;
+    }
   }
 
   /** Reloads everything on screen after a sync or a filter change. */
@@ -248,6 +329,7 @@ class Watcher {
       this.stale = false;
       await this.refresh();
     }
+    void this.installIfWanted();
     if (away !== null && Date.now() - away >= BRIEF_ABSENCE) await this.summarise(away);
   }
 

@@ -26,9 +26,21 @@
       "devCsp": "default-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost ws://127.0.0.1:1420"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFQjcxN0MxNzUxMUFGRDIKUldUU3J4RjF3UmUzN25uMURWaGVHSWh2VFRSZS9lTnNtcnhlblp5TWRVaGVpR2dZQ1dHRzVXWEUK",
+      "endpoints": [
+        "https://github.com/Gingerbreadfork/birdfeeder/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "category": "DeveloperTool",
     "publisher": "Birdfeeder",
     "homepage": "https://github.com/Gingerbreadfork/birdfeeder",

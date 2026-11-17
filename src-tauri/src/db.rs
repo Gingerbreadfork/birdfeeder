@@ -182,6 +182,30 @@ pub fn forget_account(conn: &mut Connection) -> Result<()> {
     Ok(())
 }
 
+/// How long a note about the window is believed after it was written.
+const RESTART_NOTE_SECONDS: i64 = 120;
+
+/// Writes down whether the window is showing, just before a restart for an update.
+pub fn note_window(conn: &Connection, visible: bool) -> Result<()> {
+    let state = if visible { "shown" } else { "hidden" };
+    let now = chrono::Utc::now().timestamp();
+    meta_set(conn, "window_before_restart", &format!("{state} {now}"))
+}
+
+/// Whether the window was showing before a restart that has just happened.
+/// The note is used once, and an old one is ignored.
+pub fn take_window_note(conn: &Connection) -> Result<Option<bool>> {
+    let Some(note) = meta_get(conn, "window_before_restart")? else {
+        return Ok(None);
+    };
+    meta_delete(conn, "window_before_restart")?;
+    let (state, at) = note.split_once(' ').unwrap_or((&note, "0"));
+    let age = chrono::Utc::now().timestamp() - at.parse::<i64>().unwrap_or(0);
+    Ok((0..=RESTART_NOTE_SECONDS)
+        .contains(&age)
+        .then_some(state == "shown"))
+}
+
 /// The newest events the window has celebrated and summarised, by id.
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct Marks {

@@ -235,6 +235,25 @@ pub async fn clear_token(state: State<'_, AppState>) -> CmdResult<()> {
     Ok(())
 }
 
+/// Whether the window is on screen, as far as the desktop says.
+fn window_showing(app: &AppHandle) -> bool {
+    app.get_webview_window("main")
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(true)
+}
+
+#[tauri::command]
+pub fn window_visible(app: AppHandle) -> bool {
+    window_showing(&app)
+}
+
+/// Called just before a restart for an update, so the app comes back the way it was left.
+#[tauri::command]
+pub async fn note_window(app: AppHandle) -> CmdResult<()> {
+    let visible = window_showing(&app);
+    with_db(&app, move |conn| db::note_window(conn, visible)).await
+}
+
 /// Clears what was collected for one account so another can be watched, then checks at once.
 #[tauri::command]
 pub async fn start_over(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
