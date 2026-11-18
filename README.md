@@ -5,7 +5,8 @@
 <h1 align="center">Birdfeeder</h1>
 
 <p align="center">
-  A desktop app that tells you who has been visiting your GitHub repositories.<br>
+  An app for your desktop and your phone that tells you who has been visiting your GitHub
+  repositories.<br>
   Put your code out, and watch who turns up.
 </p>
 
@@ -24,7 +25,7 @@ or forty people downloading last night's release all happen in silence, and you 
 days later when a number looks different. Download counts are tucked inside each release,
 and traffic figures are thrown away after two weeks.
 
-Birdfeeder sits on your desktop and keeps an eye out. When something lands it tells you
+Birdfeeder sits on your desktop or your phone and keeps an eye out. When something lands it tells you
 what it was and who it came from, keeps a list you can scroll back through, and hangs on
 to the history GitHub lets go of.
 
@@ -112,16 +113,30 @@ notification has its own switch.
 
 **Keeps watching.** Close the window and Birdfeeder carries on in the background. Its tray
 icon turns gold when something is waiting. It can start when you log in, and it checks as
-often as every minute or as rarely as once a day.
+often as every minute or as rarely as once a day. On a phone it checks when you open it,
+unless it looked a moment ago, and about every fifteen minutes while it is closed, as often
+as Android allows.
+
+**Fits in your hand.** On a phone the tabs sit along the bottom, within reach of a thumb.
+Pull a list down to check now. Tap a square on the overview to see what it holds, and slide
+a finger along a chart to read it. The back gesture steps out of a repository, then back to
+the overview, and only then leaves the app.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/phone-dark.png">
+    <img src="docs/phone-light.png" width="920" alt="Birdfeeder on an Android phone: the overview, the activity list with its filter chips, and the repositories, with the tabs along the bottom">
+  </picture>
+</p>
 
 **Keeps itself up to date.** Birdfeeder looks for a newer release when it starts and every
 few hours after, and tells you when there is one. Installing it takes one click, or none
-if you switch on automatic installs. The check reads one file from this project's releases
-and sends nothing about you.
+if you switch on automatic installs. On Android it links to the new APK instead. The check
+reads one file from this project's releases and sends nothing about you.
 
 **Only reads.** Birdfeeder cannot star, comment, close or mark anything as read. What it
-learns stays in a SQLite file on your computer. There is no server, no account to create
-and no telemetry.
+learns stays in a SQLite file on your computer or phone. There is no server, no account to
+create and no telemetry.
 
 ## Try it without an account
 
@@ -147,16 +162,21 @@ sudo apt install ./Birdfeeder_*_amd64.deb
 chmod +x Birdfeeder_*.AppImage && ./Birdfeeder_*.AppImage
 ```
 
-Birdfeeder is built and tested on Linux. It is a Tauri app, so Windows and macOS builds
-should work, but nobody has tried them yet.
+On Android, download `Birdfeeder_*_android.apk` from the same page on your phone and open
+it. Android asks once whether your browser may install apps. Birdfeeder needs Android 7 or
+later, and asks whether it may send notifications once an account is connected.
+
+Birdfeeder is built and tested on Linux and Android. It is a Tauri app, so Windows and
+macOS builds should work, but nobody has tried them yet.
 
 On GNOME the tray icon needs the
 [AppIndicator extension](https://extensions.gnome.org/extension/615/appindicator-support/).
 Without it everything else still works: Ctrl+Q quits, and opening Birdfeeder again brings
 the window back.
 
-After that Birdfeeder updates itself, whichever package you chose. Every package is signed
-and the signature is checked before anything is installed. A `.deb` or `.rpm` update asks
+After that Birdfeeder updates itself, whichever Linux package you chose. Every package is
+signed and the signature is checked before anything is installed. On Android a new release
+is announced in the app, and its APK installs over the old one. A `.deb` or `.rpm` update asks
 for your password, since it goes through the package manager. Version 0.1.0 came before
 the updater, so it has to be replaced by hand once.
 
@@ -169,6 +189,11 @@ Otherwise paste a personal access token in Settings. A classic token with the `r
 covers private repositories, traffic and the inbox. GitHub does not let fine-grained tokens
 read notifications, so use a classic one if you want the inbox. A pasted token is kept in
 your system keyring, not in a file.
+
+On a phone there is no GitHub CLI, so the first screen walks you through making a token:
+a button opens GitHub's form with the name and scope filled in, and you paste what it gives
+you. The token stays in the app's private storage, which other apps cannot read, and it is
+left out of Android's backups.
 
 Birdfeeder watches one account. If the login changes to a different one, it stops and asks
 before clearing what it has collected, so two accounts never end up mixed together.
@@ -184,6 +209,9 @@ A repository's page has a button that narrows the list to that repository. The l
 has its own tab, along with the best-followed people who have come by.
 
 Ctrl+R checks now. Ctrl+1 to Ctrl+5 switch tabs. Esc clears the filters. Ctrl+Q quits.
+
+On a phone the activity list has a tab of its own, and Settings is the button at the top
+right.
 
 Settings holds the rest: how often to check, whether to include forks, archived
 repositories and organisation repositories, which events notify, which release files to
@@ -206,7 +234,14 @@ Everything GitHub returns goes through one module with no network code in it, wh
 it into events. Its rules are tested against an in-memory database: what counts as new,
 what stays quiet, when a star was lost, when a busy day is worth mentioning.
 
-Your data lives in `~/.local/share/io.github.gingerbreadfork.birdfeeder/birdfeeder.db`.
+Your data lives in `~/.local/share/io.github.gingerbreadfork.birdfeeder/birdfeeder.db`, or
+in the app's private storage on Android.
+
+On Android the app checks only while it is on screen. Once it is out of sight, a job that
+Android's scheduler runs about every fifteen minutes, with a connection, makes the same
+check and sends the notifications. Both take the same lock, so they never write the same
+findings twice. GitHub's certificates are checked against Mozilla's list of root
+certificates, which the app carries.
 
 ## Not planned
 
@@ -231,6 +266,29 @@ pnpm app:build              # build packages into src-tauri/target/release/bundl
 `app:build` is `tauri build` with two variables set that the AppImage step needs on a
 current Linux distribution.
 
+For Android you also need JDK 21, the Android SDK, and NDK 27, with `ANDROID_HOME` and
+`NDK_HOME` pointing at them.
+
+```sh
+rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+pnpm tauri android dev                      # run it on a phone or emulator
+BIRDFEEDER_DEMO=1 pnpm tauri android dev    # run it on sample data
+pnpm tauri android build --apk              # build a universal APK
+```
+
+A phone has no command line, so `BIRDFEEDER_DEMO=1` at build time stands in for `--demo`.
+A release APK is signed when `src-tauri/gen/android/keystore.properties` names a key:
+
+```properties
+storeFile=/path/to/birdfeeder.jks
+password=...
+keyAlias=birdfeeder
+```
+
+A debug build started with
+`adb shell am start -n io.github.gingerbreadfork.birdfeeder/.MainActivity --ez check-now true`
+runs the background check ten seconds later, which leaves time to switch away from the app.
+
 Packaging signs each file for the updater, so it needs the private key in
 `TAURI_SIGNING_PRIVATE_KEY` (the key itself or a path to it) and its password in
 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. To build without a key, leave the updater files out:
@@ -239,9 +297,10 @@ Packaging signs each file for the updater, so it needs the private key in
 pnpm app:build --config '{"bundle":{"createUpdaterArtifacts":false}}'
 ```
 
-Publishing a release on GitHub runs a workflow that builds the packages, attaches them to
-the release, and adds the `latest.json` the updater reads. It takes the key from
-repository secrets.
+Publishing a release on GitHub runs a workflow that builds the packages and the APK,
+attaches them to the release, and adds the `latest.json` the updater reads. It takes the
+updater key, and the Android keystore as `ANDROID_KEYSTORE` (base64) with its password as
+`ANDROID_KEYSTORE_PASSWORD`, from repository secrets.
 
 Checks:
 
@@ -254,7 +313,8 @@ cargo test -- --ignored live_sync    # one real check, using the GitHub CLI's lo
 
 The interface is in `src/`. In `src-tauri/src/`, `github.rs` talks to the API, `sync.rs`
 decides what to fetch, `apply.rs` turns what came back into events, and `watch.rs` runs the
-background loop and the notifications.
+background loop and the notifications. `background.rs` is the check Android's scheduler
+runs, called from `CheckJob.kt` in `src-tauri/gen/android`.
 
 ## License
 

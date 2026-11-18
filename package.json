@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.1",
   "type": "module",
-  "description": "A desktop app that tells you who has been visiting your GitHub repositories.",
+  "description": "An app for desktop and Android that tells you who has been visiting your GitHub repositories.",
   "license": "MIT",
   "packageManager": "pnpm@12.14.0",
   "engines": {
