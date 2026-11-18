@@ -112,10 +112,9 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
-
+      # The runner comes with the Android SDK and its licences accepted, so only the NDK is added.
       - name: Install the NDK
-        run: sdkmanager --install "ndk;27.2.12479018"
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.2.12479018" > /dev/null
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -140,9 +139,9 @@ jobs:
 
       # Phones run arm64 or armv7; x86_64 covers Chromebooks and emulators.
       - name: Build the APK
-        env:
-          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
-        run: pnpm tauri android build --apk --target aarch64 --target armv7 --target x86_64
+        run: |
+          export NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
+          pnpm tauri android build --apk --target aarch64 --target armv7 --target x86_64
 
       - name: Attach it to the release
         env:
