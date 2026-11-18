@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getVersion } from "@tauri-apps/api/app";
   import Bird from "./Bird.svelte";
+  import SignIn from "./SignIn.svelte";
   import TokenForm from "./TokenForm.svelte";
   import { api, open } from "./api";
   import { clock, num } from "./format";
@@ -50,6 +51,12 @@
     patterns = loaded.ignore_assets.join("\n");
   });
   const loadAuth = () => api.authInfo().then((info) => (auth = info));
+
+  const signOut = $derived.by(() => {
+    if (mobile) return "Sign out";
+    const what = auth?.signed_in_here ? "Sign out" : "Remove saved token";
+    return auth?.has_gh_cli ? `${what} and use the GitHub CLI` : what;
+  });
   if (!watcher.status.demo) void loadAuth();
 
   async function save() {
@@ -121,20 +128,25 @@
       <p>
         Signed in
         {#if watcher.login}as <strong>{watcher.login}</strong>{/if}
-        with {sources[watcher.status.token_source]}.
+        {watcher.status.token_source === "saved" && auth?.signed_in_here
+          ? "through GitHub"
+          : `with ${sources[watcher.status.token_source]}`}.
       </p>
     {:else}
       <p>Not connected to GitHub.</p>
     {/if}
     {#if !watcher.status.demo}
       {#if auth?.has_saved_token}
-        <button class="btn" onclick={removeToken}>
-          {mobile
-            ? "Sign out"
-            : `Remove saved token${auth.has_gh_cli ? " and use the GitHub CLI" : ""}`}
-        </button>
+        <button class="btn" onclick={removeToken}>{signOut}</button>
+        {#if auth.signed_in_here}
+          <p class="hint">
+            Signing out forgets the token here. GitHub lists Birdfeeder in your settings under
+            Applications, where its access can be revoked.
+          </p>
+        {/if}
       {:else}
-        <h3>{mobile ? "Connect with a personal access token" : "Use a personal access token instead"}</h3>
+        <SignIn onsigned={loadAuth} primary={!watcher.status.token_source} />
+        <h3>Or paste a personal access token</h3>
         <TokenForm onsaved={loadAuth} />
       {/if}
     {/if}

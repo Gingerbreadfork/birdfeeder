@@ -7,7 +7,7 @@ use crate::db::{self, Event, EventQuery, Marks};
 use crate::github::GitHub;
 use crate::settings::Settings;
 use crate::watch::{self, AppState, Status};
-use crate::{apply, views};
+use crate::{apply, signin, views};
 
 type CmdResult<T> = Result<T, String>;
 
@@ -223,6 +223,8 @@ pub struct AuthInfo {
     pub source: Option<TokenSource>,
     pub login: Option<String>,
     pub has_saved_token: bool,
+    /// Whether the saved token came from signing in through GitHub rather than being pasted.
+    pub signed_in_here: bool,
     pub has_gh_cli: bool,
 }
 
@@ -240,21 +242,56 @@ pub async fn auth_info(state: State<'_, AppState>) -> CmdResult<AuthInfo> {
     Ok(AuthInfo {
         source,
         login,
+        signed_in_here: has_saved_token.as_deref().is_some_and(signin::from_app),
         has_saved_token: has_saved_token.is_some(),
         has_gh_cli: has_gh_cli.is_some(),
     })
 }
 
+const NOT_IN_DEMO: &str = "Start Birdfeeder without --demo to connect an account.";
+
 /// Checks a pasted token against GitHub, then keeps it in the system keyring.
 #[tauri::command]
 pub async fn save_token(state: State<'_, AppState>, token: String) -> CmdResult<String> {
     if state.demo {
-        return Err("Start Birdfeeder without --demo to connect an account.".into());
+        return Err(NOT_IN_DEMO.into());
     }
     let token = token.trim().to_string();
     if token.is_empty() {
         return Err("Paste a token first.".into());
     }
+    keep_token(&state, token).await
+}
+
+/// Starts signing in through GitHub, and returns the code to enter there.
+#[tauri::command]
+pub async fn sign_in_start(
+    state: State<'_, AppState>,
+    flow: State<'_, signin::Flow>,
+) -> CmdResult<signin::Code> {
+    if state.demo {
+        return Err(NOT_IN_DEMO.into());
+    }
+    flow.start(&state.http).await.map_err(fail)
+}
+
+/// Waits for the code to be approved on GitHub, then keeps the token like a pasted one.
+#[tauri::command]
+pub async fn sign_in_wait(
+    state: State<'_, AppState>,
+    flow: State<'_, signin::Flow>,
+) -> CmdResult<String> {
+    let token = flow.wait(&state.http).await.map_err(fail)?;
+    keep_token(&state, token).await
+}
+
+#[tauri::command]
+pub fn sign_in_cancel(flow: State<'_, signin::Flow>) {
+    flow.cancel();
+}
+
+/// Checks a token against GitHub, keeps it, and checks the account at once.
+async fn keep_token(state: &AppState, token: String) -> CmdResult<String> {
     let viewer = GitHub::new(state.http.clone(), token.clone())
         .viewer()
         .await

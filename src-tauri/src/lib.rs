@@ -9,6 +9,7 @@ mod github;
 mod hackernews;
 mod highlights;
 mod settings;
+mod signin;
 mod sync;
 #[cfg(test)]
 mod tests;
@@ -74,6 +75,7 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .manage(signin::Flow::default())
         .setup(move |app| {
             let conn = if demo {
                 let conn = db::open_in_memory()?;
@@ -132,6 +134,9 @@ pub fn run() {
             commands::auth_info,
             commands::save_token,
             commands::clear_token,
+            commands::sign_in_start,
+            commands::sign_in_wait,
+            commands::sign_in_cancel,
             commands::start_over,
             commands::window_visible,
             commands::note_window,

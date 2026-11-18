@@ -182,18 +182,23 @@ the updater, so it has to be replaced by hand once.
 
 ## Signing in
 
-If you use the [GitHub CLI](https://cli.github.com) and have run `gh auth login`, there is
-nothing to do. Birdfeeder borrows that login.
+Choose **Sign in with GitHub**. Birdfeeder shows a short code and opens GitHub in your
+browser, where you enter the code and approve. GitHub asks for the `repo` scope, which
+covers private repositories, traffic and the inbox. It describes that as full control, but
+Birdfeeder only reads. An organisation that limits third-party apps needs an owner to
+approve Birdfeeder before its private repositories show up.
 
-Otherwise paste a personal access token in Settings. A classic token with the `repo` scope
-covers private repositories, traffic and the inbox. GitHub does not let fine-grained tokens
-read notifications, so use a classic one if you want the inbox. A pasted token is kept in
-your system keyring, not in a file.
+If you use the [GitHub CLI](https://cli.github.com) on a computer and have run
+`gh auth login`, there is nothing to do. Birdfeeder borrows that login.
 
-On a phone there is no GitHub CLI, so the first screen walks you through making a token:
-a button opens GitHub's form with the name and scope filled in, and you paste what it gives
-you. The token stays in the app's private storage, which other apps cannot read, and it is
-left out of Android's backups.
+You can also paste a personal access token. A classic token with the `repo` scope covers
+private repositories, traffic and the inbox. GitHub does not let fine-grained tokens read
+notifications, so use a classic one if you want the inbox.
+
+However it arrives, the token is kept in your system keyring, not in a file. On a phone it
+stays in the app's private storage, which other apps cannot read, and it is left out of
+Android's backups. Signing out in Settings forgets it, and GitHub lists Birdfeeder in your
+settings under Applications, where its access can be revoked.
 
 Birdfeeder watches one account. If the login changes to a different one, it stops and asks
 before clearing what it has collected, so two accounts never end up mixed together.
@@ -229,6 +234,9 @@ check where nothing happened costs five requests against GitHub's allowance of f
 thousand an hour, and one more for every ten repositories that publish releases. Traffic
 costs three requests per repository and is read at most every three hours, and a visitor's
 profile is read once, the first time they turn up.
+
+Signing in uses GitHub's device flow, which needs no server and no secret in the app: it
+asks GitHub for a code, then asks every few seconds whether the code has been approved.
 
 Everything GitHub returns goes through one module with no network code in it, which turns
 it into events. Its rules are tested against an in-memory database: what counts as new,

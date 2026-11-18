@@ -156,7 +156,9 @@ class Watcher {
     await listen<Status>("status", (e) => {
       const was = this.status.phase;
       this.status = e.payload;
-      if (was === "syncing" && e.payload.phase !== "syncing") this.settle();
+      // Signed out, a check ends without ever being under way.
+      const phase = e.payload.phase;
+      if (phase !== "syncing" && (was === "syncing" || phase === "signed_out")) this.settle();
       void this.askToNotify();
     });
     addEventListener("popstate", () => this.popped());

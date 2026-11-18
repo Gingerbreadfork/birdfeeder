@@ -1,5 +1,6 @@
 <script lang="ts">
   import Bird from "./Bird.svelte";
+  import SignIn from "./SignIn.svelte";
   import TokenForm from "./TokenForm.svelte";
   import { api } from "./api";
   import { mobile } from "./platform";
@@ -27,32 +28,40 @@
     <h1>{rejected ? "GitHub rejected the access token" : "Connect a GitHub account"}</h1>
     <p>
       {#if rejected}
-        The token Birdfeeder was using has expired or been revoked. Make a new one the same way.
+        GitHub no longer accepts the token Birdfeeder was using. Sign in again to carry on.
       {:else}
-        Birdfeeder reads your account with a personal access token. It only reads, and the token
-        never leaves this phone except to talk to GitHub.
+        Sign in through GitHub in your browser. Birdfeeder only reads, and what it learns stays on
+        this phone.
       {/if}
     </p>
-    <ol class="steps">
-      <li>Create a token on GitHub. The link fills in the name and the one scope it needs.</li>
-      <li>Copy the token GitHub shows you. It starts with <span class="mono">ghp_</span>.</li>
-      <li>Come back and paste it here.</li>
-    </ol>
-    <TokenForm />
+    <div class="first"><SignIn /></div>
+
+    <details>
+      <summary>Use a personal access token instead</summary>
+      <ol class="steps">
+        <li>Create a token on GitHub. The link fills in the name and the one scope it needs.</li>
+        <li>Copy the token GitHub shows you. It starts with <span class="mono">ghp_</span>.</li>
+        <li>Come back and paste it here.</li>
+      </ol>
+      <TokenForm />
+    </details>
   {:else}
     <h1>{rejected ? "GitHub rejected the access token" : "Connect a GitHub account"}</h1>
     <p>
       {#if rejected && status.token_source === "saved"}
-        The token you saved has expired or been revoked. Paste a new one below, or remove it in
-        Settings to use the GitHub CLI's login.
+        GitHub no longer accepts the token Birdfeeder saved. Sign in again, paste a new token, or
+        remove the saved one in Settings to use the GitHub CLI's login.
       {:else if rejected}
-        The token Birdfeeder was using has expired or been revoked. Sign in again with the GitHub
-        CLI, or paste a new token.
+        The token Birdfeeder was using has expired or been revoked. Sign in again below, sign in
+        again with the GitHub CLI, or paste a new token.
       {:else}
-        Birdfeeder reads your account with the GitHub CLI's login when it finds one. There is none
-        on this computer yet.
+        Sign in through GitHub in your browser. Birdfeeder also uses the GitHub CLI's login when it
+        finds one, and there is none on this computer yet.
       {/if}
     </p>
+
+    <h2>With your browser</h2>
+    <SignIn />
 
     <h2>With the GitHub CLI</h2>
     <p>
@@ -82,7 +91,7 @@
   }
 
   h2 {
-    margin: 24px 0 6px;
+    margin: 24px 0 8px;
   }
 
   p {
@@ -98,11 +107,34 @@
     margin-top: 10px;
   }
 
+  .first {
+    margin: 18px 0 8px;
+  }
+
+  details {
+    margin-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  summary {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap);
+    padding-top: 12px;
+    color: var(--ink-2);
+    font-weight: 550;
+    cursor: pointer;
+  }
+
+  details[open] summary {
+    color: var(--ink);
+  }
+
   .steps {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    margin: 16px 0 18px;
+    margin: 12px 0 18px;
     padding-left: 22px;
     color: var(--ink-2);
   }

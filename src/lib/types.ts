@@ -291,5 +291,15 @@ export interface AuthInfo {
   source: TokenSource | null;
   login: string | null;
   has_saved_token: boolean;
+  /** Whether the saved token came from signing in through GitHub rather than being pasted. */
+  signed_in_here: boolean;
   has_gh_cli: boolean;
+}
+
+/** What to enter on GitHub to sign in, and where. */
+export interface SignInCode {
+  user_code: string;
+  verification_uri: string;
+  /** Seconds until the code stops working. */
+  expires_in: number;
 }

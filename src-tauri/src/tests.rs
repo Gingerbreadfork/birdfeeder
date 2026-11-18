@@ -1394,6 +1394,39 @@ fn notifications_follow_the_settings_and_fold_a_burst() {
     assert!(to_show(&settings, &many).is_empty());
 }
 
+#[test]
+fn signing_in_waits_slows_down_and_stops_as_github_says() {
+    use crate::signin::{Answer, Step, from_app, next};
+    let said = |error: &str| Answer {
+        error: Some(error.into()),
+        ..Answer::default()
+    };
+
+    assert_eq!(next(said("authorization_pending"), 5), Step::Wait(5));
+    assert_eq!(next(said("slow_down"), 5), Step::Wait(10));
+    let slower = Answer {
+        interval: Some(15),
+        ..said("slow_down")
+    };
+    assert_eq!(next(slower, 5), Step::Wait(15));
+    assert!(matches!(next(said("expired_token"), 5), Step::Fail(_)));
+    assert!(matches!(next(said("access_denied"), 5), Step::Fail(_)));
+    let odd = Answer {
+        error_description: Some("Device flow is disabled".into()),
+        ..said("device_flow_disabled")
+    };
+    assert_eq!(next(odd, 5), Step::Fail("Device flow is disabled".into()));
+    let token = Answer {
+        access_token: Some("gho_abc".into()),
+        ..Answer::default()
+    };
+    assert_eq!(next(token, 5), Step::Done("gho_abc".into()));
+
+    assert!(from_app("gho_abc"));
+    assert!(!from_app("ghp_abc"));
+    assert!(!from_app("github_pat_abc"));
+}
+
 /// Syncs against the real API with the GitHub CLI's token. Run with `--ignored`.
 #[tokio::test]
 #[ignore]

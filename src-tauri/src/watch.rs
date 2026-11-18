@@ -198,11 +198,6 @@ async fn sync_once(app: &AppHandle) -> Duration {
     let settings = state.settings();
     let interval = Duration::from_secs(u64::from(settings.poll_minutes) * 60);
 
-    set_status(app, |s| {
-        s.phase = Phase::Syncing;
-        s.step = Some("Starting".into());
-    });
-
     let mut retried = false;
     let outcome = loop {
         let cached = state.token.lock().await.clone();
@@ -221,7 +216,12 @@ async fn sync_once(app: &AppHandle) -> Duration {
             return interval;
         };
         *state.token.lock().await = Some((token.clone(), source));
-        set_status(app, |s| s.token_source = Some(source));
+        // Only now is there something to check, so being signed out never flickers to checking.
+        set_status(app, |s| {
+            s.token_source = Some(source);
+            s.phase = Phase::Syncing;
+            s.step = Some("Starting".into());
+        });
 
         let gh = GitHub::new(state.http.clone(), token);
         let report = |step: &str| set_status(app, |s| s.step = Some(step.to_string()));

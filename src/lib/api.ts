@@ -10,6 +10,7 @@ import type {
   RepoDetail,
   RepoRow,
   Settings,
+  SignInCode,
   Status,
   WatchEvent,
 } from "./types";
@@ -31,6 +32,9 @@ export const api = {
   authInfo: () => invoke<AuthInfo>("auth_info"),
   saveToken: (token: string) => invoke<string>("save_token", { token }),
   clearToken: () => invoke<void>("clear_token"),
+  signInStart: () => invoke<SignInCode>("sign_in_start"),
+  signInWait: () => invoke<string>("sign_in_wait"),
+  signInCancel: () => invoke<void>("sign_in_cancel"),
   startOver: () => invoke<void>("start_over"),
   windowVisible: () => invoke<boolean>("window_visible"),
   noteWindow: () => invoke<void>("note_window"),
