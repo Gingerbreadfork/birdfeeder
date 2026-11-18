@@ -134,13 +134,25 @@ CREATE TABLE IF NOT EXISTS referrers (
 /// Changes to the schema since the first version, in order. Only ever add to the end.
 const MIGRATIONS: &[&str] = &["ALTER TABLE repos ADD COLUMN traffic_tried_at TEXT"];
 
-/// Creates the tables and applies the changes this database has not had yet.
+/// Creates the tables and applies the changes this database has not had yet. The write lock
+/// is held throughout, so a second connection opening the file waits instead of migrating too.
 fn prepare(conn: &Connection) -> Result<()> {
-    conn.execute_batch(SCHEMA)?;
-    let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    for (done, change) in MIGRATIONS.iter().enumerate().skip(version as usize) {
-        conn.execute_batch(change)?;
-        conn.pragma_update(None, "user_version", done as i64 + 1)?;
+    conn.execute_batch("BEGIN IMMEDIATE")?;
+    let migrated = (|| -> Result<()> {
+        conn.execute_batch(SCHEMA)?;
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+        for (done, change) in MIGRATIONS.iter().enumerate().skip(version as usize) {
+            conn.execute_batch(change)?;
+            conn.pragma_update(None, "user_version", done as i64 + 1)?;
+        }
+        Ok(())
+    })();
+    match migrated {
+        Ok(()) => conn.execute_batch("COMMIT")?,
+        Err(e) => {
+            let _ = conn.execute_batch("ROLLBACK");
+            return Err(e);
+        }
     }
     Ok(())
 }
@@ -149,6 +161,8 @@ pub const FILE_NAME: &str = "birdfeeder.db";
 
 pub fn open(path: &std::path::Path) -> Result<Connection> {
     let conn = Connection::open(path)?;
+    // A phone's background check can write while the app holds the file open.
+    conn.busy_timeout(std::time::Duration::from_secs(10))?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
     conn.pragma_update(None, "synchronous", "NORMAL")?;
     prepare(&conn)?;

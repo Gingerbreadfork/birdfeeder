@@ -303,6 +303,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "futures-util",
+ "jni 0.21.1",
  "keyring",
  "notify-rust",
  "reqwest",

@@ -1,5 +1,7 @@
 mod apply;
 mod auth;
+#[cfg(target_os = "android")]
+mod background;
 mod commands;
 mod db;
 mod demo;
@@ -26,7 +28,7 @@ const HIDDEN_FLAG: &str = "--hidden";
 const DEMO_FLAG: &str = "--demo";
 
 /// A phone has no command line, so a build can ask for sample data instead.
-fn wants_demo() -> bool {
+pub(crate) fn wants_demo() -> bool {
     option_env!("BIRDFEEDER_DEMO").is_some() || std::env::args().any(|arg| arg == DEMO_FLAG)
 }
 
@@ -134,6 +136,7 @@ pub fn run() {
             commands::window_visible,
             commands::note_window,
             commands::latest_release,
+            commands::set_foreground,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Birdfeeder");

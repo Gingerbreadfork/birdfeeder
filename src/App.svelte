@@ -103,8 +103,10 @@
   }
 
   function seen() {
-    if (document.visibilityState === "hidden") watcher.leave();
-    else watcher.arrive();
+    const visible = document.visibilityState === "visible";
+    watcher.shown(visible);
+    if (visible) watcher.arrive();
+    else watcher.leave();
   }
 </script>
 

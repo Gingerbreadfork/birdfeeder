@@ -252,25 +252,38 @@
     </label>
   </section>
 
-  {#if !mobile}
   <section class="panel">
     <h2>Running in the background</h2>
-    <label class="row">
-      <input type="checkbox" class="switch" bind:checked={settings.keep_running} onchange={save} />
-      <span>
-        Keep watching after the window is closed
-        <small>Open the app again, or use its tray icon, to bring the window back.</small>
-      </span>
-    </label>
-    {#if !watcher.status.demo}
+    {#if mobile}
+      <label class="row">
+        <input type="checkbox" class="switch" bind:checked={settings.keep_running} onchange={save} />
+        <span>
+          Keep checking while Birdfeeder is closed
+          <small>
+            Android decides when: about every 15 minutes at most, less often when the battery is
+            low, and only with a connection.
+          </small>
+        </span>
+      </label>
+    {:else}
+      <label class="row">
+        <input type="checkbox" class="switch" bind:checked={settings.keep_running} onchange={save} />
+        <span>
+          Keep watching after the window is closed
+          <small>Open the app again, or use its tray icon, to bring the window back.</small>
+        </span>
+      </label>
+    {/if}
+    {#if !watcher.status.demo && !mobile}
       <label class="row">
         <input type="checkbox" class="switch" bind:checked={settings.autostart} onchange={save} />
         <span>Start when you log in, without opening a window</span>
       </label>
     {/if}
-    <button class="btn" onclick={() => api.quit()}>Quit Birdfeeder</button>
+    {#if !mobile}
+      <button class="btn" onclick={() => api.quit()}>Quit Birdfeeder</button>
+    {/if}
   </section>
-  {/if}
 
   <section class="panel">
     <h2>Updates</h2>

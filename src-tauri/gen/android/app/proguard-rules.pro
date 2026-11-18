@@ -20,3 +20,5 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
+# The background check is started by name and calls into Rust by name.
+-keep class io.github.gingerbreadfork.birdfeeder.CheckJob { *; }

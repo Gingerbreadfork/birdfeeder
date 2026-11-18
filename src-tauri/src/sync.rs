@@ -83,7 +83,7 @@ pub fn now_utc() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true)
 }
 
-fn older_than(stamp: Option<&str>, age: Duration) -> bool {
+pub fn older_than(stamp: Option<&str>, age: Duration) -> bool {
     stamp
         .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
         .is_none_or(|at| Utc::now() - at.with_timezone(&Utc) > age)

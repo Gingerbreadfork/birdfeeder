@@ -41,9 +41,42 @@ async fn unread(app: &AppHandle) -> CmdResult<i64> {
         .map_err(fail)
 }
 
+/// The current status, with the unread count and last check read afresh, since a
+/// phone's background check may have changed both while the app was away.
 #[tauri::command]
-pub fn status(state: State<'_, AppState>) -> Status {
-    state.status.lock().unwrap().clone()
+pub async fn status(app: AppHandle) -> CmdResult<Status> {
+    let (unread, last) = with_db(&app, |conn| {
+        Ok((db::unread_count(conn)?, db::meta_get(conn, "last_sync_at")?))
+    })
+    .await?;
+    let state = app.state::<AppState>();
+    let mut status = state.status.lock().unwrap();
+    status.unread = unread;
+    if last.is_some() {
+        status.last_sync_at = last;
+    }
+    Ok(status.clone())
+}
+
+/// A check this recent is not repeated when the app comes back on screen.
+const STILL_FRESH: chrono::Duration = chrono::Duration::minutes(2);
+
+/// A phone tells the app when it comes on screen and goes away. Coming back checks at once,
+/// unless the last check, by the app or its background job, was only a moment ago.
+#[tauri::command]
+pub async fn set_foreground(app: AppHandle, visible: bool) -> CmdResult<()> {
+    let state = app.state::<AppState>();
+    let was = state.in_foreground();
+    state.set_foreground(visible);
+    if !visible || was {
+        return Ok(());
+    }
+    state.shown.notify_one();
+    let last = with_db(&app, |conn| db::meta_get(conn, "last_sync_at")).await?;
+    if crate::sync::older_than(last.as_deref(), STILL_FRESH) {
+        state.wake.notify_one();
+    }
+    Ok(())
 }
 
 #[tauri::command]

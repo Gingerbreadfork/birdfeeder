@@ -63,8 +63,15 @@ pub struct AppState {
     pub token: tokio::sync::Mutex<Option<(String, TokenSource)>>,
     /// Whether closing the window hides it. Kept here so the window's thread never waits on the database.
     keep_running: AtomicBool,
-    running: tokio::sync::Mutex<()>,
+    /// Whether the app is on screen. A phone only checks from the app while it is.
+    foreground: AtomicBool,
+    /// Told when the app comes back on screen, so a phone's loop resumes its wait.
+    pub shown: tokio::sync::Notify,
 }
+
+/// Held while a sync runs, by the app or by a phone's background check, so two
+/// never write the same findings at once.
+pub static SYNCING: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 impl AppState {
     pub fn new(conn: Connection, demo: bool) -> Self {
@@ -95,7 +102,8 @@ impl AppState {
             status: Mutex::new(status),
             wake: tokio::sync::Notify::new(),
             token: tokio::sync::Mutex::new(None),
-            running: tokio::sync::Mutex::new(()),
+            foreground: AtomicBool::new(true),
+            shown: tokio::sync::Notify::new(),
         }
     }
 
@@ -113,8 +121,16 @@ impl AppState {
     }
 
     /// Waits for a running sync to finish and holds the next one off.
-    pub async fn pause(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.running.lock().await
+    pub async fn pause(&self) -> tokio::sync::MutexGuard<'static, ()> {
+        SYNCING.lock().await
+    }
+
+    pub fn in_foreground(&self) -> bool {
+        self.foreground.load(Ordering::Relaxed)
+    }
+
+    pub fn set_foreground(&self, on: bool) {
+        self.foreground.store(on, Ordering::Relaxed);
     }
 }
 
@@ -149,6 +165,7 @@ pub fn show_window(app: &AppHandle) {
 }
 
 pub async fn run(app: AppHandle) {
+    let state = app.state::<AppState>();
     loop {
         let wait = sync_once(&app).await;
         let next = chrono::Utc::now() + chrono::Duration::from_std(wait).unwrap_or_default();
@@ -156,8 +173,12 @@ pub async fn run(app: AppHandle) {
             s.next_sync_at = Some(next.to_rfc3339_opts(chrono::SecondsFormat::Secs, true));
         });
         // Waits in short steps against the wall clock, so time asleep counts too.
-        let state = app.state::<AppState>();
         loop {
+            // Out of sight, a phone leaves checking to its background job.
+            if cfg!(mobile) && !state.in_foreground() {
+                state.shown.notified().await;
+                continue;
+            }
             let left = (next - chrono::Utc::now()).to_std().unwrap_or_default();
             if left.is_zero() {
                 break;
@@ -173,7 +194,7 @@ pub async fn run(app: AppHandle) {
 /// Runs one sync and returns how long to wait before the next.
 async fn sync_once(app: &AppHandle) -> Duration {
     let state = app.state::<AppState>();
-    let _running = state.running.lock().await;
+    let _running = SYNCING.lock().await;
     let settings = state.settings();
     let interval = Duration::from_secs(u64::from(settings.poll_minutes) * 60);
 
@@ -254,6 +275,8 @@ async fn sync_once(app: &AppHandle) -> Duration {
         });
         refresh_unread(app);
         let _ = app.emit("synced", report.notices.len());
+        // A phone only checks from the app while it is on screen, so it stays quiet.
+        #[cfg(desktop)]
         notify(app, &settings, &report.notices);
     }
     let Some(e) = failure else {
@@ -283,27 +306,34 @@ async fn sync_once(app: &AppHandle) -> Duration {
     wait
 }
 
+#[cfg(desktop)]
 fn notify(app: &AppHandle, settings: &Settings, notices: &[Notice]) {
+    for (title, body) in to_show(settings, notices) {
+        show_notification(app, &title, &body);
+    }
+}
+
+/// The notifications the settings ask for, as titles and bodies. A burst is
+/// folded into one notification, led by its first few titles.
+pub fn to_show(settings: &Settings, notices: &[Notice]) -> Vec<(String, String)> {
     if !settings.notifications {
-        return;
+        return Vec::new();
     }
     let wanted: Vec<&Notice> = notices
         .iter()
         .filter(|n| settings.notify.allows(n.kind))
         .collect();
     if wanted.len() <= 3 {
-        for notice in wanted {
-            show_notification(app, &notice.title, &notice.body);
-        }
-        return;
+        return wanted
+            .into_iter()
+            .map(|n| (n.title.clone(), n.body.clone()))
+            .collect();
     }
-    // A burst is folded into one notification, led by its first few titles.
     let lead: Vec<&str> = wanted.iter().take(3).map(|n| n.title.as_str()).collect();
-    show_notification(
-        app,
-        &format!("{} new things on GitHub", wanted.len()),
-        &format!("{}, and {} more", lead.join("; "), wanted.len() - 3),
-    );
+    vec![(
+        format!("{} new things on GitHub", wanted.len()),
+        format!("{}, and {} more", lead.join("; "), wanted.len() - 3),
+    )]
 }
 
 /// Sent directly on Linux so the notification carries the app's name, and so the
@@ -324,7 +354,7 @@ fn show_notification(app: &AppHandle, title: &str, body: &str) {
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(all(desktop, not(target_os = "linux")))]
 fn show_notification(app: &AppHandle, title: &str, body: &str) {
     use tauri_plugin_notification::NotificationExt;
     let _ = app.notification().builder().title(title).body(body).show();

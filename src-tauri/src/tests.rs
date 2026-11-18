@@ -1322,6 +1322,33 @@ fn sample_data_fills_every_screen() {
     assert_eq!(list.visitors[0].login, "kestrel");
 }
 
+/// The app and a phone's background check can open the file at the same moment after an
+/// update, and only one of them may apply the update's schema changes.
+#[test]
+fn two_connections_migrate_a_database_only_once() {
+    let dir = std::env::temp_dir().join(format!("birdfeeder-migrate-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    for round in 0..20 {
+        let path = dir.join(format!("{round}.db"));
+        let conn = db::open(&path).unwrap();
+        conn.execute_batch(
+            "ALTER TABLE repos DROP COLUMN traffic_tried_at; PRAGMA user_version = 0;",
+        )
+        .unwrap();
+        drop(conn);
+        let openers: Vec<_> = (0..2)
+            .map(|_| {
+                let path = path.clone();
+                std::thread::spawn(move || db::open(&path).map(|_| ()))
+            })
+            .collect();
+        for opener in openers {
+            opener.join().unwrap().expect("both connections open");
+        }
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 #[test]
 fn a_release_is_newer_by_its_numbers_not_its_text() {
     use crate::commands::newer;
@@ -1331,6 +1358,40 @@ fn a_release_is_newer_by_its_numbers_not_its_text() {
     assert!(!newer("0.1.1", "0.1.1"));
     assert!(!newer("0.1.0", "0.1.1"));
     assert!(!newer("0.1.1-beta", "0.1.1"));
+}
+
+#[test]
+fn notifications_follow_the_settings_and_fold_a_burst() {
+    use crate::settings::Settings;
+    use crate::watch::to_show;
+    let notice = |kind: &'static str, title: &str| Notice {
+        kind,
+        title: title.into(),
+        body: format!("{title} body"),
+        actor: None,
+    };
+    let mut settings = Settings::default();
+    settings.notify.downloads = false;
+
+    let few = [notice("star", "A star"), notice("downloads", "Downloads")];
+    assert_eq!(
+        to_show(&settings, &few),
+        vec![("A star".to_string(), "A star body".to_string())]
+    );
+
+    let many: Vec<Notice> = (1..=5)
+        .map(|i| notice("star", &format!("Star {i}")))
+        .collect();
+    assert_eq!(
+        to_show(&settings, &many),
+        vec![(
+            "5 new things on GitHub".to_string(),
+            "Star 1; Star 2; Star 3, and 2 more".to_string()
+        )]
+    );
+
+    settings.notifications = false;
+    assert!(to_show(&settings, &many).is_empty());
 }
 
 /// Syncs against the real API with the GitHub CLI's token. Run with `--ignored`.

@@ -37,6 +37,7 @@ export const api = {
   marks: () => invoke<Marks>("marks"),
   setCelebrated: (id: number) => invoke<void>("set_celebrated", { id }),
   markSeen: () => invoke<number>("mark_seen"),
+  setForeground: (visible: boolean) => invoke<void>("set_foreground", { visible }),
   latestRelease: () => invoke<{ version: string; notes: string } | null>("latest_release"),
 };
 

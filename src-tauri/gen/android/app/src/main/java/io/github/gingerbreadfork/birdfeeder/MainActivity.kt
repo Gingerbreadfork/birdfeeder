@@ -1,5 +1,6 @@
 package io.github.gingerbreadfork.birdfeeder
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
@@ -14,6 +15,7 @@ class MainActivity : TauriActivity() {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     makeRoom()
+    checkIfAsked(intent)
   }
 
   // Drawn edge to edge, the page is not resized for the keyboard, so the room is made by hand.
@@ -30,6 +32,25 @@ class MainActivity : TauriActivity() {
       val passed = WindowInsetsCompat.Builder(insets).setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
       if (padBars) passed.setInsets(bars, Insets.NONE)
       passed.build()
+    }
+  }
+
+  // Leaving the screen is when background checks start to matter, and the setting is settled by then.
+  override fun onStop() {
+    super.onStop()
+    CheckJob.schedule(this)
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    checkIfAsked(intent)
+  }
+
+  // A debug build runs the background check ten seconds after being started with
+  // `adb shell am start -n <package>/.MainActivity --ez check-now true`.
+  private fun checkIfAsked(intent: Intent?) {
+    if (BuildConfig.DEBUG && intent?.getBooleanExtra("check-now", false) == true) {
+      CheckJob.runSoon(this)
     }
   }
 

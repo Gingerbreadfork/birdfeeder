@@ -368,6 +368,16 @@ class Watcher {
     void api.markSeen().then((id) => (this.marks.seen = id));
   }
 
+  /**
+   * A phone's app checks only while it is on screen. Out of sight, Android's background job
+   * takes over, so whatever it found is read back on return.
+   */
+  shown(visible: boolean) {
+    if (!mobile) return;
+    void api.setForeground(visible);
+    if (!visible) this.stale = true;
+  }
+
   /** The window is being looked at again. */
   async arrive() {
     const away = this.awayAt;
@@ -375,6 +385,7 @@ class Watcher {
     if (this.stale) {
       this.stale = false;
       if (mobile) {
+        this.status = await api.status();
         // Notifications may have been turned on in the phone's settings meanwhile.
         this.mayNotify = (await isPermissionGranted()) === true;
       }
