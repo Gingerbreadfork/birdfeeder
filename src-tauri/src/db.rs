@@ -145,6 +145,8 @@ fn prepare(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
+pub const FILE_NAME: &str = "birdfeeder.db";
+
 pub fn open(path: &std::path::Path) -> Result<Connection> {
     let conn = Connection::open(path)?;
     conn.pragma_update(None, "journal_mode", "WAL")?;

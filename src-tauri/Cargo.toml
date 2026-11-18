@@ -18,18 +18,13 @@ tauri-build = { version = "2", features = [] }
 anyhow = "1.0.104"
 chrono = { version = "0.4.45", features = ["serde"] }
 futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
-keyring = "4.2.0"
 reqwest = { version = "0.13.5", default-features = false, features = ["gzip", "json", "rustls"] }
 rusqlite = { version = "0.43.0", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
-tauri-plugin-autostart = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
-tauri-plugin-process = "2"
-tauri-plugin-single-instance = "2"
-tauri-plugin-updater = "2"
 tokio = { version = "1.54.1", features = ["time", "sync", "process", "macros", "rt"] }
 
 [profile.release]
@@ -39,5 +34,15 @@ opt-level = 3
 panic = "abort"
 strip = true
 
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+keyring = "4.2.0"
+tauri-plugin-autostart = "2"
+tauri-plugin-process = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust = "4"
+
+[target.'cfg(target_os = "android")'.dependencies]
+webpki-root-certs = "1"

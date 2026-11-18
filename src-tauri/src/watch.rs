@@ -9,7 +9,7 @@ use crate::apply::Notice;
 use crate::auth::{self, TokenSource};
 use crate::github::{self, ApiError, GitHub, RateLimit};
 use crate::settings::Settings;
-use crate::{db, sync, tray};
+use crate::{db, sync};
 use rusqlite::Connection;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
@@ -103,6 +103,7 @@ impl AppState {
         Settings::load(&self.db.lock().unwrap())
     }
 
+    #[cfg(desktop)]
     pub fn keeps_running(&self) -> bool {
         self.keep_running.load(Ordering::Relaxed)
     }
@@ -133,10 +134,12 @@ pub fn refresh_unread(app: &AppHandle) -> i64 {
     let state = app.state::<AppState>();
     let unread = db::unread_count(&state.db.lock().unwrap()).unwrap_or(0);
     set_status(app, |s| s.unread = unread);
-    tray::update(app, unread);
+    #[cfg(desktop)]
+    crate::tray::update(app, unread);
     unread
 }
 
+#[cfg(desktop)]
 pub fn show_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();

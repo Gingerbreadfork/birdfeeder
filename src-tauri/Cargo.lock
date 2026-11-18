@@ -318,6 +318,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tokio",
+ "webpki-root-certs",
 ]
 
 [[package]]

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="root" path="github-token" />
+    <exclude domain="root" path="github-token.new" />
+    <exclude domain="root" path="birdfeeder.db-wal" />
+    <exclude domain="root" path="birdfeeder.db-shm" />
+</full-backup-content>

@@ -59,12 +59,19 @@ pub struct GitHub {
 }
 
 pub fn http_client() -> Client {
-    Client::builder()
+    let builder = Client::builder()
         .user_agent(USER_AGENT)
         .timeout(std::time::Duration::from_secs(30))
-        .connect_timeout(std::time::Duration::from_secs(10))
-        .build()
-        .expect("HTTP client")
+        .connect_timeout(std::time::Duration::from_secs(10));
+    // Android's own certificate store is only reachable through Java, so the
+    // app carries Mozilla's list of root certificates instead.
+    #[cfg(target_os = "android")]
+    let builder = builder.tls_certs_only(
+        webpki_root_certs::TLS_SERVER_ROOT_CERTS
+            .iter()
+            .filter_map(|der| reqwest::Certificate::from_der(der).ok()),
+    );
+    builder.build().expect("HTTP client")
 }
 
 fn header_i64(resp: &Response, name: &str) -> Option<i64> {

@@ -1,7 +1,6 @@
 use rusqlite::Connection;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_autostart::ManagerExt;
 
 use crate::auth::{self, TokenSource};
 use crate::db::{self, Event, EventQuery, Marks};
@@ -140,19 +139,11 @@ pub async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<Sett
         let before = Settings::load(conn);
         let state = handle.state::<AppState>();
 
-        if state.demo {
-            // Sample data must not leave a login item behind.
+        if state.demo || cfg!(mobile) {
+            // Sample data must not leave a login item behind, and a phone has none.
             settings.autostart = before.autostart;
         } else if settings.autostart != before.autostart {
-            let launcher = handle.autolaunch();
-            let result = if settings.autostart {
-                launcher.enable()
-            } else {
-                launcher.disable()
-            };
-            if let Err(e) = result {
-                anyhow::bail!("Could not change start at login: {e}");
-            }
+            set_autostart(&handle, settings.autostart)?;
         }
 
         settings.save(conn)?;
@@ -174,6 +165,23 @@ pub async fn save_settings(app: AppHandle, settings: Settings) -> CmdResult<Sett
         app.state::<AppState>().wake.notify_one();
     }
     Ok(settings)
+}
+
+#[cfg(desktop)]
+fn set_autostart(app: &AppHandle, on: bool) -> anyhow::Result<()> {
+    use tauri_plugin_autostart::ManagerExt;
+    let launcher = app.autolaunch();
+    let result = if on {
+        launcher.enable()
+    } else {
+        launcher.disable()
+    };
+    result.map_err(|e| anyhow::anyhow!("Could not change start at login: {e}"))
+}
+
+#[cfg(mobile)]
+fn set_autostart(_app: &AppHandle, _on: bool) -> anyhow::Result<()> {
+    Ok(())
 }
 
 #[derive(Debug, Default, Serialize)]
