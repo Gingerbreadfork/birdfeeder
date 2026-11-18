@@ -74,6 +74,19 @@ pub fn http_client() -> Client {
     builder.build().expect("HTTP client")
 }
 
+/// An error and what lies beneath it, since "error sending request" alone says little.
+fn with_cause(e: &dyn std::error::Error) -> String {
+    let mut root = e;
+    while let Some(next) = root.source() {
+        root = next;
+    }
+    if std::ptr::addr_eq(root, e) {
+        e.to_string()
+    } else {
+        format!("{e}: {root}")
+    }
+}
+
 fn header_i64(resp: &Response, name: &str) -> Option<i64> {
     resp.headers().get(name)?.to_str().ok()?.parse().ok()
 }
@@ -104,10 +117,12 @@ impl GitHub {
             .send()
             .await
             .map_err(|e| {
-                if e.is_connect() || e.is_timeout() || e.is_request() {
-                    ApiError::Offline(e.without_url().to_string())
+                let offline = e.is_connect() || e.is_timeout() || e.is_request();
+                let detail = with_cause(&e.without_url());
+                if offline {
+                    ApiError::Offline(detail)
                 } else {
-                    ApiError::Other(e.without_url().to_string())
+                    ApiError::Other(detail)
                 }
             })?;
 
