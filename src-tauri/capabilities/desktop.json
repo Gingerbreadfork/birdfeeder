@@ -4,5 +4,5 @@
   "description": "What the main window may do on a computer",
   "windows": ["main"],
   "platforms": ["linux", "macOS", "windows"],
-  "permissions": ["updater:default", "process:allow-restart"]
+  "permissions": ["updater:default", "process:allow-restart", "core:window:allow-set-theme"]
 }

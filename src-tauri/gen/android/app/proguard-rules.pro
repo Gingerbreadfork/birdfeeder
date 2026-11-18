@@ -22,3 +22,8 @@
 
 # The background check is started by name and calls into Rust by name.
 -keep class io.github.gingerbreadfork.birdfeeder.CheckJob { *; }
+
+# The page calls the theme choice by name.
+-keepclassmembers class io.github.gingerbreadfork.birdfeeder.MainActivity$ThemeChoice {
+    @android.webkit.JavascriptInterface <methods>;
+}

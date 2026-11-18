@@ -269,6 +269,9 @@ export interface NotifyKinds {
   traffic: boolean;
 }
 
+/** Light, dark, or whichever the computer or phone uses. */
+export type Theme = "system" | "light" | "dark";
+
 export interface Settings {
   poll_minutes: number;
   include_forks: boolean;
@@ -280,6 +283,7 @@ export interface Settings {
   notifications: boolean;
   notify: NotifyKinds;
   celebrate: boolean;
+  theme: Theme;
   keep_running: boolean;
   autostart: boolean;
   check_updates: boolean;

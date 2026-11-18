@@ -69,6 +69,8 @@ pub struct Settings {
     pub notify: NotifyKinds,
     /// Shows the bird and a scatter of seed in the window for milestones and the like.
     pub celebrate: bool,
+    /// "light", "dark", or "system" to follow the computer or phone.
+    pub theme: String,
     pub keep_running: bool,
     pub autostart: bool,
     /// Looks for a newer release at launch and every few hours.
@@ -92,6 +94,7 @@ impl Default for Settings {
             notifications: true,
             notify: NotifyKinds::default(),
             celebrate: true,
+            theme: "system".into(),
             keep_running: true,
             autostart: false,
             check_updates: true,
@@ -125,6 +128,9 @@ impl Settings {
 
     pub fn normalized(mut self) -> Self {
         self.poll_minutes = self.poll_minutes.clamp(1, 24 * 60);
+        if !["system", "light", "dark"].contains(&self.theme.as_str()) {
+            self.theme = "system".into();
+        }
         let mut kept: Vec<String> = Vec::new();
         for pattern in self.ignore_assets.iter().map(|p| p.trim()) {
             if !pattern.is_empty() && !kept.iter().any(|k| k == pattern) {

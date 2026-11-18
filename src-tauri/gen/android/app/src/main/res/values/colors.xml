@@ -2,6 +2,8 @@
 <resources>
     <!-- The same paper and hedge green as the window, so launching does not flash. -->
     <color name="paper">#FFEEF2E9</color>
+    <color name="paper_light">#FFEEF2E9</color>
+    <color name="paper_dark">#FF111813</color>
     <color name="accent">#FF2C6A48</color>
     <color name="hedge">#FF23412F</color>
     <color name="seed">#FFE9B23C</color>

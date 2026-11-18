@@ -2,8 +2,13 @@ package io.github.gingerbreadfork.birdfeeder
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
+import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -11,8 +16,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewCompat
 
 class MainActivity : TauriActivity() {
+  /** The theme chosen in the app: "light", "dark", or "system". */
+  private var theme = "system"
+
   override fun onCreate(savedInstanceState: Bundle?) {
-    enableEdgeToEdge()
+    theme = getSharedPreferences(PREFS, MODE_PRIVATE).getString(THEME, null) ?: "system"
+    matchTheme()
     super.onCreate(savedInstanceState)
     makeRoom()
     checkIfAsked(intent)
@@ -54,9 +63,45 @@ class MainActivity : TauriActivity() {
     }
   }
 
-  // Dark mode changes without the activity starting over, so the bar icons follow by hand.
+  // The page says which theme was chosen in Settings, so the bars and window can match it.
+  override fun onWebViewCreate(webView: WebView) {
+    webView.addJavascriptInterface(ThemeChoice(), "BirdfeederAndroid")
+  }
+
+  private inner class ThemeChoice {
+    @JavascriptInterface
+    fun setTheme(chosen: String) {
+      if (chosen !in listOf("light", "dark", "system")) return
+      getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(THEME, chosen).apply()
+      runOnUiThread {
+        theme = chosen
+        matchTheme()
+      }
+    }
+  }
+
+  // Dark mode changes without the activity starting over, so the bars and window follow by hand.
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
-    enableEdgeToEdge()
+    matchTheme()
+  }
+
+  // The activity itself stays on the phone's theme, so the web view keeps telling the page
+  // what the phone uses. Only the bar icons and the window behind the page follow the choice.
+  private fun matchTheme() {
+    val night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+    val dark = theme == "dark" || (theme == "system" && night == Configuration.UI_MODE_NIGHT_YES)
+    val bars = if (dark) {
+      SystemBarStyle.dark(Color.TRANSPARENT)
+    } else {
+      SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+    }
+    enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+    window.setBackgroundDrawable(ColorDrawable(getColor(if (dark) R.color.paper_dark else R.color.paper_light)))
+  }
+
+  companion object {
+    private const val PREFS = "appearance"
+    private const val THEME = "theme"
   }
 }

@@ -7,9 +7,15 @@
   import { clock, num } from "./format";
   import { mobile } from "./platform";
   import { watcher } from "./state.svelte";
-  import type { AuthInfo, NotifyKinds, Settings } from "./types";
+  import type { AuthInfo, NotifyKinds, Settings, Theme } from "./types";
 
   const intervals = [1, 2, 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440];
+
+  const themes: { id: Theme; label: string }[] = [
+    { id: "system", label: "System" },
+    { id: "light", label: "Light" },
+    { id: "dark", label: "Dark" },
+  ];
 
   function every(minutes: number): string {
     if (minutes === 1) return "minute";
@@ -157,6 +163,21 @@
         {#each watcher.status.warnings as warning, i (i)}<li>{warning}</li>{/each}
       </ul>
     {/if}
+  </section>
+
+  <section class="panel">
+    <h2>Appearance</h2>
+    <div class="theme" role="radiogroup" aria-label="Theme">
+      {#each themes as theme (theme.id)}
+        <label class={{ on: settings.theme === theme.id }}>
+          <input type="radio" name="theme" value={theme.id} bind:group={settings.theme} onchange={save} />
+          {theme.label}
+        </label>
+      {/each}
+    </div>
+    <p class="hint">
+      {mobile ? "System follows the phone's dark theme." : "System follows your desktop's light or dark style."}
+    </p>
   </section>
 
   <section class="panel">
@@ -532,6 +553,56 @@
     border: 0;
     background: none;
     color: var(--accent);
+  }
+
+  .theme {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--line-strong);
+    border-radius: calc(var(--radius) + 3px);
+    background: var(--bg);
+  }
+
+  .theme label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: calc(var(--tap) - 6px);
+    padding: 0 14px;
+    border-radius: var(--radius);
+    color: var(--ink-2);
+    font-size: var(--fs-sm);
+    font-weight: 550;
+    cursor: pointer;
+  }
+
+  .theme label.on {
+    background: var(--surface);
+    box-shadow: 0 1px 2px #0000002a;
+    color: var(--ink);
+  }
+
+  .theme input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .theme label:has(input:focus-visible) {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  @media (max-width: 600px) {
+    .theme {
+      display: flex;
+      width: 100%;
+    }
+
+    .theme label {
+      flex: 1;
+      justify-content: center;
+    }
   }
 
   .blocked {

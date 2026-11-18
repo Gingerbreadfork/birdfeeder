@@ -3,6 +3,7 @@ import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notif
 import { api, open } from "./api";
 import { LANES, isSpecial, type Lane } from "./kinds";
 import { mobile, narrow } from "./platform";
+import { applyTheme } from "./theme";
 import {
   RELEASE_PAGE,
   asksForPassword,
@@ -183,6 +184,7 @@ class Watcher {
 
   /** Takes on the settings the window itself acts on. */
   applySettings(settings: Settings) {
+    applyTheme(settings.theme);
     this.celebrates = settings.celebrate;
     this.notifying = settings.notifications;
     const checkChanged = this.updates.check !== settings.check_updates;

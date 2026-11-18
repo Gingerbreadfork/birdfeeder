@@ -79,9 +79,9 @@
   }
 }
 
-/* The garden after dark. */
+/* The garden after dark: chosen in Settings, or following a dark system unless light was chosen. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #111813;
     --surface: #18211b;
     --surface-2: #202b23;
@@ -110,6 +110,42 @@
     --k-release: #199e70;
     --k-other: #879586;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #111813;
+  --surface: #18211b;
+  --surface-2: #202b23;
+  --ink: #e8eee6;
+  --ink-2: #b3bfb3;
+  --ink-3: #879586;
+  --line: #29352c;
+  --line-strong: #3a493e;
+  --cell: #25322a;
+  --accent: #84cf9e;
+  --accent-wash: #84cf9e24;
+  --seed: #f0bd4a;
+  --seed-ink: #f0bd4a;
+  --on: #3f9b66;
+  --up: #5fce7a;
+  --down: #f08a80;
+  --danger: #f08a80;
+
+  --k-star: #c98500;
+  --k-follower: #d55181;
+  --k-issue: #0ca30c;
+  --k-pr: #9085e9;
+  --k-inbox: #e66767;
+  --k-fork: #3987e5;
+  --k-downloads: #d95926;
+  --k-release: #199e70;
+  --k-other: #879586;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 *,
