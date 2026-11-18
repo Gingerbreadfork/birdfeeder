@@ -103,10 +103,25 @@
 <style>
   .stage {
     position: fixed;
-    right: 20px;
-    bottom: 20px;
+    right: calc(20px + var(--safe-right));
+    bottom: calc(20px + var(--dock));
     z-index: 50;
     max-width: calc(100vw - 40px);
+  }
+
+  /* A phone gives the whole width to it, just above the tab bar. */
+  @media (max-width: 560px) {
+    .stage {
+      right: 12px;
+      bottom: calc(10px + var(--dock));
+      left: 12px;
+      max-width: none;
+    }
+
+    .main {
+      flex: 1;
+      max-width: none;
+    }
   }
 
   .toast {
@@ -145,9 +160,11 @@
     color: var(--ink-3);
   }
 
-  .close:hover {
-    background: var(--accent-wash);
-    color: var(--ink);
+  @media (hover: hover) {
+    .close:hover {
+      background: var(--accent-wash);
+      color: var(--ink);
+    }
   }
 
   .bird {

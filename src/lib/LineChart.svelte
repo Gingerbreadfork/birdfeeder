@@ -20,6 +20,7 @@
 
   let width = $state(0);
   let hover = $state<number | null>(null);
+  let chart = $state<HTMLElement>();
 
   const series = $derived(points.map((p) => ({ t: parseDay(p.date).getTime(), value: p.value })));
   const span = $derived.by(() => {
@@ -88,13 +89,26 @@
     const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
     hover = Math.min(PAD.left + plotW, Math.max(PAD.left, e.clientX - box.left));
   }
+
+  /** A finger lifting leaves the reading in place, until a tap elsewhere. */
+  function leave(e: PointerEvent) {
+    if (e.pointerType !== "touch") hover = null;
+  }
+
+  function away(e: PointerEvent) {
+    if (hover !== null && !chart?.contains(e.target as Node)) hover = null;
+  }
 </script>
+
+<svelte:document onpointerdown={away} />
 
 <div
   class="chart"
+  bind:this={chart}
   bind:clientWidth={width}
+  onpointerdown={track}
   onpointermove={track}
-  onpointerleave={() => (hover = null)}
+  onpointerleave={leave}
   role="img"
   aria-label="{plural(end?.value ?? 0, ...unit)} as of today, charted over time"
 >
@@ -134,6 +148,8 @@
   .chart {
     position: relative;
     min-height: 60px;
+    /* A sideways drag reads along the line; an upward one still scrolls the page. */
+    touch-action: pan-y;
   }
 
   svg {

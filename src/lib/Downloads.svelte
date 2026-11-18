@@ -146,9 +146,11 @@
     font: inherit;
   }
 
-  .link:hover,
-  .inline:hover {
-    text-decoration: underline;
+  @media (hover: hover) {
+    .link:hover,
+    .inline:hover {
+      text-decoration: underline;
+    }
   }
 
   .inline {
@@ -160,6 +162,12 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 10px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .panel {
+      padding: 16px;
     }
   }
 </style>

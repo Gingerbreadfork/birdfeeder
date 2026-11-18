@@ -46,6 +46,37 @@
 
   --radius: 6px;
   --cell-radius: 2.5px;
+
+  /* Body text in lists and tables. */
+  --fs-row: 13.5px;
+  /* The smallest comfortable target for a finger. */
+  --tap: 30px;
+
+  /* Room the phone's status bar, cutout and gesture bar take from the page. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* What is fixed along the bottom edge: the tab bar on a phone, else the gesture bar. */
+  --dock: var(--safe-bottom);
+}
+
+@media (max-width: 900px) and (pointer: coarse) {
+  :root {
+    --dock: calc(70px + var(--safe-bottom));
+  }
+}
+
+/* A finger needs larger targets and slightly larger type than a pointer. */
+@media (pointer: coarse) {
+  :root {
+    --fs-xs: 12px;
+    --fs-sm: 13.5px;
+    --fs-md: 15px;
+    --fs-row: 15px;
+    --tap: 40px;
+  }
 }
 
 /* The garden after dark. */
@@ -94,6 +125,10 @@ body {
 }
 
 body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
@@ -144,8 +179,10 @@ a {
   cursor: pointer;
 }
 
-a:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 :focus-visible {
@@ -174,7 +211,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: var(--tap);
   padding: 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -184,9 +221,30 @@ a:hover {
   white-space: nowrap;
 }
 
-.btn:hover:not(:disabled) {
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    background: var(--surface-2);
+    border-color: var(--ink-3);
+  }
+
+  .btn.primary:hover:not(:disabled) {
+    background: var(--ink-2);
+    border-color: var(--ink-2);
+  }
+
+  .btn.quiet:hover:not(:disabled) {
+    background: var(--accent-wash);
+    border-color: transparent;
+    color: var(--ink);
+  }
+}
+
+.btn:active:not(:disabled) {
   background: var(--surface-2);
-  border-color: var(--ink-3);
+}
+
+.btn.quiet:active:not(:disabled) {
+  background: var(--accent-wash);
 }
 
 .btn:disabled {
@@ -200,9 +258,8 @@ a:hover {
   color: var(--surface);
 }
 
-.btn.primary:hover:not(:disabled) {
+.btn.primary:active:not(:disabled) {
   background: var(--ink-2);
-  border-color: var(--ink-2);
 }
 
 .btn.quiet {
@@ -212,14 +269,8 @@ a:hover {
   padding: 0 8px;
 }
 
-.btn.quiet:hover:not(:disabled) {
-  background: var(--accent-wash);
-  border-color: transparent;
-  color: var(--ink);
-}
-
 .field {
-  height: 32px;
+  height: max(32px, var(--tap));
   padding: 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
@@ -263,6 +314,7 @@ textarea.field {
 
 .scroll {
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--line-strong) transparent;
 }
@@ -336,4 +388,26 @@ textarea.field {
 
 .switch:checked::after {
   transform: translateX(14px);
+}
+
+@media (pointer: coarse) {
+  /* Below 16px a phone's keyboard can zoom the page to read what is typed. */
+  .field {
+    font-size: 16px;
+  }
+
+  .switch {
+    width: 40px;
+    height: 24px;
+    border-radius: 12px;
+  }
+
+  .switch::after {
+    width: 20px;
+    height: 20px;
+  }
+
+  .switch:checked::after {
+    transform: translateX(16px);
+  }
 }

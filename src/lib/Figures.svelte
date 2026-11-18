@@ -91,8 +91,10 @@
     letter-spacing: inherit;
   }
 
-  .value button:hover {
-    color: var(--accent);
+  @media (hover: hover) {
+    .value button:hover {
+      color: var(--accent);
+    }
   }
 
   .change {

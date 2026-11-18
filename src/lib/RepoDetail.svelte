@@ -209,7 +209,7 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   .referrers li {
@@ -246,6 +246,35 @@
   @media (max-width: 620px) {
     .title {
       flex-direction: column;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .panel {
+      padding: 16px;
+    }
+
+    .actions {
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .actions .btn {
+      flex: 1;
+      justify-content: center;
+    }
+
+    header {
+      flex-wrap: wrap;
+    }
+
+    /* The bar and the count keep their place; unique visitors are left out. */
+    .referrers li {
+      grid-template-columns: minmax(0, 1fr) 28% 6ch;
+    }
+
+    .referrers li > :nth-child(4) {
+      display: none;
     }
   }
 </style>

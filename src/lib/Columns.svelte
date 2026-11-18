@@ -24,6 +24,7 @@
 
   let width = $state(0);
   let hover = $state<number | null>(null);
+  let chart = $state<HTMLElement>();
 
   const ticks = $derived(niceTicks(Math.max(1, ...data.map((d) => d.value)), 3));
   const top = $derived(ticks[ticks.length - 1]);
@@ -44,12 +45,33 @@
   }
 
   const picked = $derived(hover === null ? null : data[hover]);
+
+  /** Reads the column under the pointer, or under a finger sliding along the chart. */
+  function track(e: PointerEvent) {
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const i = Math.floor((e.clientX - box.left - PAD.left) / band);
+    hover = band > 0 && i >= 0 && i < data.length ? i : null;
+  }
+
+  /** A finger lifting leaves the reading in place, until a tap elsewhere. */
+  function leave(e: PointerEvent) {
+    if (e.pointerType !== "touch") hover = null;
+  }
+
+  function away(e: PointerEvent) {
+    if (hover !== null && !chart?.contains(e.target as Node)) hover = null;
+  }
 </script>
+
+<svelte:document onpointerdown={away} />
 
 <div
   class="chart"
+  bind:this={chart}
   bind:clientWidth={width}
-  onpointerleave={() => (hover = null)}
+  onpointerdown={track}
+  onpointermove={track}
+  onpointerleave={leave}
   role="group"
   aria-label="Daily {unit[1]}"
 >
@@ -72,15 +94,6 @@
             {shortDate(d.date)}
           </text>
         {/if}
-        <rect
-          class="hit"
-          role="presentation"
-          x={PAD.left + i * band}
-          y={PAD.top}
-          width={band}
-          height={plotH}
-          onpointerenter={() => (hover = i)}
-        />
       {/each}
     </svg>
     {#if picked && hover !== null}
@@ -100,6 +113,7 @@
 <style>
   .chart {
     position: relative;
+    touch-action: pan-y;
   }
 
   svg {
@@ -124,9 +138,6 @@
     fill: color-mix(in srgb, var(--series) 78%, var(--ink));
   }
 
-  .hit {
-    fill: transparent;
-  }
 
   .tip {
     display: flex;

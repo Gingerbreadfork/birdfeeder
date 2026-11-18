@@ -89,7 +89,7 @@
 
   dl {
     margin: 0;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   dl > div {

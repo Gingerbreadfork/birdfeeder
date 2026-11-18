@@ -140,7 +140,7 @@
     max-width: 66ch;
     margin: 12px 0 4px;
     color: var(--ink-2);
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   h3 {
@@ -167,7 +167,7 @@
     gap: 10px;
     padding: 9px 0;
     border-top: 1px solid var(--line);
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   .sightings .cell {
@@ -239,11 +239,17 @@
     border-top: 1px solid var(--line);
     background: none;
     text-align: left;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
-  .visitors button:hover {
+  .visitors button:active {
     background: var(--accent-wash);
+  }
+
+  @media (hover: hover) {
+    .visitors button:hover {
+      background: var(--accent-wash);
+    }
   }
 
   .visitors img {
@@ -284,5 +290,11 @@
 
   .followers .muted {
     font-size: var(--fs-sm);
+  }
+
+  @media (max-width: 600px) {
+    .panel {
+      padding: 16px;
+    }
   }
 </style>

@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
-import { MediaQuery } from "svelte/reactivity";
 import { api, open } from "./api";
 import { LANES, isSpecial, type Lane } from "./kinds";
+import { narrow } from "./platform";
 import { asksForPassword, checkForUpdate, relaunch, type UpdateHandle } from "./updates";
 import type {
   Downloads,
@@ -18,6 +18,9 @@ import type {
 
 export type Page = "activity" | "overview" | "repos" | "downloads" | "lifelist" | "settings";
 
+/** The screen the app opens on, and the last one the back gesture returns to. */
+export const START: Page = "overview";
+
 const PAGE_SIZE = 80;
 /** The most rows the backend hands over in one answer. */
 const MAX_BATCH = 500;
@@ -25,8 +28,10 @@ const MAX_BATCH = 500;
 const BRIEF_ABSENCE = 60_000;
 /** How often to look for a newer release. */
 const UPDATE_EVERY = 6 * 60 * 60 * 1000;
-/** Below this width the activity list becomes a tab instead of a side rail. */
-export const narrow = new MediaQuery("max-width: 900px");
+export { narrow };
+
+/** A check that takes longer than this is no longer waited on by a pull to refresh. */
+const CHECK_PATIENCE = 30_000;
 
 /** Days of history the activity grid can show. */
 export const GRID_DAYS = 91;
@@ -102,6 +107,14 @@ class Watcher {
   /** Ticks so relative times stay current. */
   now = $state(Date.now());
 
+  /** Called when the running check finishes. */
+  private checked: (() => void)[] = [];
+
+  /** History entries above the first: one for each level the back gesture can step out of. */
+  private entries = 0;
+  /** Set while the app itself steps back through history, so that step is not taken twice. */
+  private quiet = false;
+
   get login(): string | null {
     return this.status.login ?? this.overview?.account?.login ?? null;
   }
@@ -125,7 +138,12 @@ class Watcher {
   }
 
   async start() {
-    await listen<Status>("status", (e) => (this.status = e.payload));
+    await listen<Status>("status", (e) => {
+      const was = this.status.phase;
+      this.status = e.payload;
+      if (was === "syncing" && e.payload.phase !== "syncing") this.settle();
+    });
+    addEventListener("popstate", () => this.popped());
     await listen("synced", () => {
       // A hidden window has nobody to redraw for. It catches up when it is shown.
       if (document.visibilityState === "hidden") this.stale = true;
@@ -354,6 +372,61 @@ class Watcher {
   go(page: Page) {
     this.page = page;
     this.closeRepo();
+  }
+
+  /** How many steps back lead to the first tab: one out of a repository page, one out of a tab. */
+  private get depth(): number {
+    return (this.page !== START ? 1 : 0) + (this.detail || this.wanted ? 1 : 0);
+  }
+
+  /**
+   * Keeps one history entry for each step back, so Android's back gesture comes to the app
+   * first and only leaves it from the first tab. Entries are added only on the way in, from a
+   * tap, since the web view skips entries a page adds without one.
+   */
+  keepBackInStep() {
+    const want = this.depth;
+    while (this.entries < want) {
+      this.entries += 1;
+      history.pushState({ depth: this.entries }, "");
+    }
+    if (this.entries > want && !this.quiet) {
+      this.quiet = true;
+      history.go(want - this.entries);
+    }
+  }
+
+  private popped() {
+    const state: unknown = history.state;
+    this.entries =
+      state && typeof state === "object" && "depth" in state && typeof state.depth === "number"
+        ? state.depth
+        : 0;
+    if (this.quiet) {
+      this.quiet = false;
+    } else {
+      this.celebration = null;
+      while (this.depth > this.entries) {
+        if (this.detail || this.wanted) this.closeRepo();
+        else this.go(START);
+      }
+    }
+    this.keepBackInStep();
+  }
+
+  /** Checks GitHub now and waits for the check to finish. */
+  async checkNow(): Promise<void> {
+    if (this.status.demo) {
+      await Promise.all([this.refresh(), new Promise((r) => setTimeout(r, 700))]);
+      return;
+    }
+    const done = new Promise<void>((resolve) => this.checked.push(resolve));
+    void api.syncNow();
+    await Promise.race([done, new Promise((r) => setTimeout(r, CHECK_PATIENCE))]);
+  }
+
+  private settle() {
+    for (const resolve of this.checked.splice(0)) resolve();
   }
 
   async openRepo(id: string) {

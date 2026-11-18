@@ -8,6 +8,7 @@
   import UpNext from "./UpNext.svelte";
   import { num, shortDate, signed } from "./format";
   import { repoName, type Lane } from "./kinds";
+  import { touch } from "./platform";
   import { narrow, watcher } from "./state.svelte";
 
   const overview = $derived(watcher.overview);
@@ -95,7 +96,11 @@
       </p>
     </header>
     <ActivityGrid days={overview.days} contributions={overview.contributions} />
-    <p class="note">Select a square or a row name to narrow the activity list.</p>
+    <p class="note">
+      {touch.current
+        ? "Tap a square to see that day, or a row name to show only that kind."
+        : "Select a square or a row name to narrow the activity list."}
+    </p>
   </section>
 
   <section class="panel">
@@ -118,15 +123,15 @@
             <th scope="col">Repository</th>
             <th scope="col" class="n">Stars</th>
             <th scope="col" class="n">Stars, 30 days</th>
-            <th scope="col" class="n">Forks</th>
-            {#if hasReleases}<th scope="col" class="n">Downloads</th>{/if}
+            <th scope="col" class="n minor">Forks</th>
+            {#if hasReleases}<th scope="col" class="n minor">Downloads</th>{/if}
           </tr>
         </thead>
         <tbody>
           {#each top as repo (repo.id)}
-            <tr>
+            <tr onclick={() => watcher.openRepo(repo.id)}>
               <th scope="row">
-                <button class="link" onclick={() => watcher.openRepo(repo.id)}>
+                <button class="link">
                   {repoName(repo.name, watcher.login)}
                 </button>
               </th>
@@ -138,9 +143,9 @@
                   <span class="muted">0</span>
                 {/if}
               </td>
-              <td class="n">{num(repo.forks)}</td>
+              <td class="n minor">{num(repo.forks)}</td>
               {#if hasReleases}
-                <td class="n">
+                <td class="n minor">
                   {#if repo.release_count}{num(repo.downloads)}{:else}<span class="muted">No releases</span>{/if}
                 </td>
               {/if}
@@ -234,7 +239,7 @@
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   th,
@@ -262,6 +267,34 @@
     white-space: nowrap;
   }
 
+  tbody tr {
+    cursor: pointer;
+  }
+
+  tbody tr:active {
+    background: var(--accent-wash);
+  }
+
+  @media (max-width: 600px) {
+    .minor {
+      display: none;
+    }
+
+    .panel:not(.figures) {
+      padding: 16px;
+    }
+
+    header {
+      flex-wrap: wrap;
+    }
+
+    th,
+    td {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+  }
+
   .link {
     padding: 0;
     border: 0;
@@ -270,9 +303,11 @@
     text-align: left;
   }
 
-  .link:hover {
-    color: var(--accent);
-    text-decoration: underline;
+  @media (hover: hover) {
+    .link:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
   }
 
   .up {

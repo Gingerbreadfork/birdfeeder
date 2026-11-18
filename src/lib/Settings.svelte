@@ -445,7 +445,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
     cursor: pointer;
   }
 
@@ -485,7 +485,44 @@
     color: var(--accent);
   }
 
-  .link:hover {
-    text-decoration: underline;
+  @media (pointer: coarse) {
+    .panel {
+      gap: 16px;
+    }
+
+    .check {
+      min-height: 36px;
+      gap: 12px;
+    }
+
+    .check input {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .panel {
+      padding: 16px 16px 18px;
+    }
+
+    .update {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    textarea {
+      max-width: none;
+    }
+
+    footer {
+      padding: 4px 16px 0;
+    }
+  }
+
+  @media (hover: hover) {
+    .link:hover {
+      text-decoration: underline;
+    }
   }
 </style>

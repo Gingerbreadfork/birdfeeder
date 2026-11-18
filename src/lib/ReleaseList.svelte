@@ -76,7 +76,7 @@
     padding: 5px 6px;
     margin: 0 -6px;
     border-radius: var(--radius);
-    font-size: 13.5px;
+    font-size: var(--fs-row);
     cursor: pointer;
     list-style: none;
   }
@@ -85,8 +85,10 @@
     display: none;
   }
 
-  summary:hover {
-    background: var(--accent-wash);
+  @media (hover: hover) {
+    summary:hover {
+      background: var(--accent-wash);
+    }
   }
 
   .chevron {
@@ -167,5 +169,30 @@
 
   .toggle {
     margin: 4px 0 -6px -8px;
+  }
+
+  @media (pointer: coarse) {
+    summary {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    summary:active {
+      background: var(--accent-wash);
+    }
+  }
+
+  @media (max-width: 600px) {
+    summary {
+      grid-template-columns: 12px minmax(0, 1fr) auto 56px 6ch;
+    }
+
+    .assets {
+      margin-left: 0;
+    }
+
+    .asset {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+    }
   }
 </style>

@@ -2,8 +2,10 @@
   import Bird from "./Bird.svelte";
   import { clock, dayHeading, localDay, plural, shortDate } from "./format";
   import { LANES, describe, eventColor, hasBirdMarker, laneColor, type Part } from "./kinds";
+  import { pullToRefresh } from "./pull.svelte";
   import { watcher } from "./state.svelte";
   import type { WatchEvent } from "./types";
+  import type { Attachment } from "svelte/attachments";
 
   const groups = $derived.by(() => {
     const out: { day: string; events: WatchEvent[] }[] = [];
@@ -18,6 +20,18 @@
 
   const unread = $derived(watcher.status.unread);
   const firstCheck = $derived(!watcher.status.last_sync_at && watcher.status.phase === "syncing");
+
+  /** Loads older rows as the end of the list comes into view. */
+  const more: Attachment<HTMLElement> = (node) => {
+    const seen = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) watcher.showMore();
+      },
+      { root: node.closest(".scroll"), rootMargin: "0px 0px 240px 0px" },
+    );
+    seen.observe(node);
+    return () => seen.disconnect();
+  };
 
   /** Asks GitHub for a small copy of an avatar. Inline images are used as they are. */
   function avatar(url: string): string {
@@ -78,7 +92,7 @@
     {/if}
   </div>
 
-  <div class="list scroll">
+  <div class="list scroll" {@attach pullToRefresh}>
     {#each groups as group (group.day)}
       {@const fresh = group.events.filter((e) => !e.read).map((e) => e.id)}
       <h3>
@@ -135,7 +149,9 @@
       {/if}
     {/each}
     {#if watcher.hasMore}
-      <button class="btn more" onclick={() => watcher.showMore()}>Show older activity</button>
+      <button class="btn more" onclick={() => watcher.showMore()} {@attach more}>
+        Show older activity
+      </button>
     {/if}
   </div>
 </section>
@@ -188,9 +204,20 @@
     white-space: nowrap;
   }
 
-  .chip:hover {
+  @media (hover: hover) {
+    .chip:hover {
+      background: var(--accent-wash);
+      color: var(--ink);
+    }
+
+    .row:hover {
+      background: var(--accent-wash);
+    }
+  }
+
+  .chip:active,
+  .row:active {
     background: var(--accent-wash);
-    color: var(--ink);
   }
 
   .chip[aria-pressed="true"],
@@ -221,7 +248,11 @@
   .list {
     flex: 1;
     min-height: 0;
-    padding: 0 6px 16px;
+    padding: 0 6px calc(16px + var(--safe-bottom));
+  }
+
+  :global(.handheld) .list {
+    padding-bottom: 16px;
   }
 
   h3 {
@@ -262,13 +293,10 @@
     border-radius: var(--radius);
     background: none;
     text-align: left;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
     line-height: 1.4;
   }
 
-  .row:hover {
-    background: var(--accent-wash);
-  }
 
   /* A label inside a sentence, such as "Rare bird". */
   .tag,
@@ -373,5 +401,80 @@
 
   .more {
     margin: 12px 10px 0;
+  }
+
+  /* A finger gets one row of chips to swipe along, and taller rows to tap. */
+  @media (pointer: coarse) {
+    .head {
+      min-height: 40px;
+    }
+
+    .filters {
+      flex-wrap: nowrap;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip,
+    .only {
+      flex: none;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 17px;
+    }
+
+    .chip:not([aria-pressed="true"]):not(.on),
+    .only {
+      border-color: var(--line);
+    }
+
+    .only {
+      margin-left: 0;
+      gap: 8px;
+      border: 1px solid var(--line);
+    }
+
+    .only:has(input:checked) {
+      border-color: var(--line-strong);
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    h3 {
+      min-height: 44px;
+    }
+
+    h3 .btn {
+      height: 34px;
+    }
+
+    .row {
+      gap: 12px;
+      padding: 11px 10px;
+    }
+
+    .row .cell {
+      margin-top: 6px;
+    }
+
+    .bird {
+      margin-top: 5px;
+    }
+
+    .lead img {
+      width: 20px;
+      height: 20px;
+      vertical-align: -4px;
+    }
+
+    time {
+      padding-top: 3px;
+    }
   }
 </style>

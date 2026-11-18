@@ -79,7 +79,7 @@
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 6px;
-    font-size: 13.5px;
+    font-size: var(--fs-row);
   }
 
   .name {
@@ -93,9 +93,11 @@
     white-space: nowrap;
   }
 
-  button.name:hover {
-    color: var(--accent);
-    text-decoration: underline;
+  @media (hover: hover) {
+    button.name:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
   }
 
   strong {

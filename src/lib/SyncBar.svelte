@@ -140,7 +140,7 @@
 
   .icon {
     flex: none;
-    width: 30px;
+    width: var(--tap);
     padding: 0;
     justify-content: center;
   }
