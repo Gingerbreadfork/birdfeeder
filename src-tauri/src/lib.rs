@@ -133,6 +133,7 @@ pub fn run() {
             commands::start_over,
             commands::window_visible,
             commands::note_window,
+            commands::latest_release,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Birdfeeder");

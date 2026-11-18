@@ -37,6 +37,7 @@ export const api = {
   marks: () => invoke<Marks>("marks"),
   setCelebrated: (id: number) => invoke<void>("set_celebrated", { id }),
   markSeen: () => invoke<number>("mark_seen"),
+  latestRelease: () => invoke<{ version: string; notes: string } | null>("latest_release"),
 };
 
 /** Opens a link in the system browser. */

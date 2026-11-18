@@ -2,6 +2,7 @@
   import Bird from "./Bird.svelte";
   import TokenForm from "./TokenForm.svelte";
   import { api } from "./api";
+  import { mobile } from "./platform";
   import { watcher } from "./state.svelte";
 
   const status = $derived(watcher.status);
@@ -22,6 +23,22 @@
     <button class="btn" onclick={() => api.startOver()} disabled={checking}>
       {checking ? "Checking…" : "Start over with this account"}
     </button>
+  {:else if mobile}
+    <h1>{rejected ? "GitHub rejected the access token" : "Connect a GitHub account"}</h1>
+    <p>
+      {#if rejected}
+        The token Birdfeeder was using has expired or been revoked. Make a new one the same way.
+      {:else}
+        Birdfeeder reads your account with a personal access token. It only reads, and the token
+        never leaves this phone except to talk to GitHub.
+      {/if}
+    </p>
+    <ol class="steps">
+      <li>Create a token on GitHub. The link fills in the name and the one scope it needs.</li>
+      <li>Copy the token GitHub shows you. It starts with <span class="mono">ghp_</span>.</li>
+      <li>Come back and paste it here.</li>
+    </ol>
+    <TokenForm />
   {:else}
     <h1>{rejected ? "GitHub rejected the access token" : "Connect a GitHub account"}</h1>
     <p>
@@ -79,5 +96,25 @@
 
   .btn {
     margin-top: 10px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 16px 0 18px;
+    padding-left: 22px;
+    color: var(--ink-2);
+  }
+
+  .steps li::marker {
+    color: var(--ink);
+    font-weight: 650;
+  }
+
+  @media (max-width: 600px) {
+    .panel {
+      padding: 22px 18px;
+    }
   }
 </style>

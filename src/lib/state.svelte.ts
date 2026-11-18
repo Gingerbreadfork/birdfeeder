@@ -1,8 +1,15 @@
 import { listen } from "@tauri-apps/api/event";
+import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { api, open } from "./api";
 import { LANES, isSpecial, type Lane } from "./kinds";
-import { narrow } from "./platform";
-import { asksForPassword, checkForUpdate, relaunch, type UpdateHandle } from "./updates";
+import { mobile, narrow } from "./platform";
+import {
+  RELEASE_PAGE,
+  asksForPassword,
+  checkForUpdate,
+  relaunch,
+  type UpdateHandle,
+} from "./updates";
 import type {
   Downloads,
   EventQuery,
@@ -32,6 +39,8 @@ export { narrow };
 
 /** A check that takes longer than this is no longer waited on by a pull to refresh. */
 const CHECK_PATIENCE = 30_000;
+/** Remembers that the phone has asked once for leave to notify. */
+const ASKED_TO_NOTIFY = "birdfeeder.asked-to-notify";
 
 /** Days of history the activity grid can show. */
 export const GRID_DAYS = 91;
@@ -107,6 +116,12 @@ class Watcher {
   /** Ticks so relative times stay current. */
   now = $state(Date.now());
 
+  /** Whether the phone lets the app show notifications, or null before it is known. */
+  mayNotify = $state<boolean | null>(null);
+  /** Whether the phone was asked and said no, after which only its settings can change that. */
+  notifyRefused = $state(false);
+  private notifying = false;
+
   /** Called when the running check finishes. */
   private checked: (() => void)[] = [];
 
@@ -142,6 +157,7 @@ class Watcher {
       const was = this.status.phase;
       this.status = e.payload;
       if (was === "syncing" && e.payload.phase !== "syncing") this.settle();
+      void this.askToNotify();
     });
     addEventListener("popstate", () => this.popped());
     await listen("synced", () => {
@@ -153,6 +169,11 @@ class Watcher {
     this.status = await api.status();
     this.asksForPassword = await asksForPassword();
     this.applySettings(await api.settings());
+    if (mobile) {
+      // Android answers null until it has been asked.
+      this.mayNotify = (await isPermissionGranted()) === true;
+      void this.askToNotify();
+    }
     this.marks = await api.marks();
     await this.refresh();
     await this.summarise(null);
@@ -161,6 +182,7 @@ class Watcher {
   /** Takes on the settings the window itself acts on. */
   applySettings(settings: Settings) {
     this.celebrates = settings.celebrate;
+    this.notifying = settings.notifications;
     const checkChanged = this.updates.check !== settings.check_updates;
     this.updates = { check: settings.check_updates, install: settings.install_updates };
     if (checkChanged) this.scheduleUpdateChecks();
@@ -194,17 +216,24 @@ class Watcher {
   /** Installs a found release by itself when the setting asks for that. */
   private async installIfWanted() {
     const update = this.update;
-    if (!update || !this.updates.install || this.triedVersion === update.version) return;
+    if (!update?.install || !this.updates.install || this.triedVersion === update.version) return;
     // Asking for a password with nobody at the window would only be a surprise.
     if (this.asksForPassword && !(await api.windowVisible())) return;
     this.triedVersion = update.version;
     await this.installUpdate();
   }
 
-  /** Downloads and installs the release found, then restarts. */
+  /**
+   * Downloads and installs the release found, then restarts. A phone opens the release page
+   * instead, since it cannot install the new package by itself.
+   */
   async installUpdate() {
     const update = this.update;
     if (!update || this.updateProgress !== null) return;
+    if (!update.install) {
+      open(`${RELEASE_PAGE}${update.version}`);
+      return;
+    }
     this.updateProgress = 0;
     this.updateError = "";
     try {
@@ -345,6 +374,10 @@ class Watcher {
     this.awayAt = null;
     if (this.stale) {
       this.stale = false;
+      if (mobile) {
+        // Notifications may have been turned on in the phone's settings meanwhile.
+        this.mayNotify = (await isPermissionGranted()) === true;
+      }
       await this.refresh();
     }
     void this.installIfWanted();
@@ -427,6 +460,25 @@ class Watcher {
 
   private settle() {
     for (const resolve of this.checked.splice(0)) resolve();
+  }
+
+  /** Asks once, after an account is connected, whether the phone may show notifications. */
+  private async askToNotify() {
+    if (!mobile || this.status.demo || !this.status.login) return;
+    if (this.mayNotify !== false || !this.notifying) return;
+    try {
+      if (localStorage.getItem(ASKED_TO_NOTIFY)) return;
+      localStorage.setItem(ASKED_TO_NOTIFY, "1");
+    } catch {
+      return;
+    }
+    await this.allowNotifications();
+  }
+
+  /** Shows the phone's own question about notifications. */
+  async allowNotifications() {
+    this.mayNotify = (await requestPermission()) === "granted";
+    this.notifyRefused = !this.mayNotify;
   }
 
   async openRepo(id: string) {

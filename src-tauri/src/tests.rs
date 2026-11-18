@@ -1322,6 +1322,17 @@ fn sample_data_fills_every_screen() {
     assert_eq!(list.visitors[0].login, "kestrel");
 }
 
+#[test]
+fn a_release_is_newer_by_its_numbers_not_its_text() {
+    use crate::commands::newer;
+    assert!(newer("0.1.10", "0.1.9"));
+    assert!(newer("0.2.0", "0.1.12"));
+    assert!(newer("v1.0.0", "0.9.9"));
+    assert!(!newer("0.1.1", "0.1.1"));
+    assert!(!newer("0.1.0", "0.1.1"));
+    assert!(!newer("0.1.1-beta", "0.1.1"));
+}
+
 /// Syncs against the real API with the GitHub CLI's token. Run with `--ignored`.
 #[tokio::test]
 #[ignore]

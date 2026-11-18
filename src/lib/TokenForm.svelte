@@ -1,5 +1,6 @@
 <script lang="ts">
   import { api, open } from "./api";
+  import { mobile } from "./platform";
 
   /** GitHub's form for a new classic token, with the scope and a name filled in. */
   const NEW_TOKEN = "https://github.com/settings/tokens/new?scopes=repo&description=Birdfeeder";
@@ -27,12 +28,20 @@
 </script>
 
 <form onsubmit={save}>
+  <!-- On a phone the token is made first, in the browser, then pasted below. -->
+  {#if mobile}
+    <button type="button" class="btn create" onclick={() => open(NEW_TOKEN)}>
+      Create a token on GitHub
+    </button>
+  {/if}
   <div class="entry">
     <input
       class="field mono"
       type="password"
       placeholder="ghp_…"
       autocomplete="off"
+      autocapitalize="off"
+      enterkeyhint="done"
       spellcheck="false"
       aria-label="Personal access token"
       bind:value={token}
@@ -44,9 +53,14 @@
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   <p class="hint">
     A classic token with the <span class="mono">repo</span> scope covers private repositories,
-    traffic and the inbox. It is kept in your system keyring.
+    traffic and the inbox.
+    {mobile
+      ? "It stays in Birdfeeder's private storage on this phone."
+      : "It is kept in your system keyring."}
   </p>
-  <button type="button" class="btn" onclick={() => open(NEW_TOKEN)}>Create a token on GitHub</button>
+  {#if !mobile}
+    <button type="button" class="btn" onclick={() => open(NEW_TOKEN)}>Create a token on GitHub</button>
+  {/if}
 </form>
 
 <style>
@@ -76,7 +90,28 @@
     color: var(--danger);
   }
 
+  @media (max-width: 600px) {
+    .entry {
+      flex-direction: column;
+    }
+
+    .field {
+      flex: none;
+      max-width: none;
+    }
+
+    .entry .btn {
+      justify-content: center;
+    }
+  }
+
   form > .btn {
     margin-top: 10px;
+  }
+
+  form > .create {
+    width: 100%;
+    margin: 0 0 12px;
+    justify-content: center;
   }
 </style>

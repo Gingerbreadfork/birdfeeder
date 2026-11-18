@@ -4,6 +4,7 @@
   import TokenForm from "./TokenForm.svelte";
   import { api, open } from "./api";
   import { clock, num } from "./format";
+  import { mobile } from "./platform";
   import { watcher } from "./state.svelte";
   import type { AuthInfo, NotifyKinds, Settings } from "./types";
 
@@ -109,7 +110,9 @@
 
   <section class="panel">
     <h2>Account</h2>
-    {#if watcher.status.demo}
+    {#if watcher.status.demo && mobile}
+      <p>You are looking at sample data. This copy was built to show it.</p>
+    {:else if watcher.status.demo}
       <p>
         You are looking at sample data. Start Birdfeeder without
         <span class="mono">--demo</span> to watch your own account.
@@ -126,10 +129,12 @@
     {#if !watcher.status.demo}
       {#if auth?.has_saved_token}
         <button class="btn" onclick={removeToken}>
-          Remove saved token{auth.has_gh_cli ? " and use the GitHub CLI" : ""}
+          {mobile
+            ? "Sign out"
+            : `Remove saved token${auth.has_gh_cli ? " and use the GitHub CLI" : ""}`}
         </button>
       {:else}
-        <h3>Use a personal access token instead</h3>
+        <h3>{mobile ? "Connect with a personal access token" : "Use a personal access token instead"}</h3>
         <TokenForm onsaved={loadAuth} />
       {/if}
     {/if}
@@ -194,8 +199,21 @@
     <h2>Notifications</h2>
     <label class="row">
       <input type="checkbox" class="switch" bind:checked={settings.notifications} onchange={save} />
-      <span>Show a desktop notification when something new happens</span>
+      <span>Show a {mobile ? "" : "desktop "}notification when something new happens</span>
     </label>
+    {#if mobile && settings.notifications && watcher.mayNotify === false}
+      <div class="blocked">
+        {#if watcher.notifyRefused}
+          <p>
+            Android is not letting Birdfeeder show notifications. They can be turned on in the
+            phone's settings, under Apps, Birdfeeder, Notifications.
+          </p>
+        {:else}
+          <p>Android is not letting Birdfeeder show notifications yet.</p>
+          <button class="btn" onclick={() => watcher.allowNotifications()}>Allow notifications</button>
+        {/if}
+      </div>
+    {/if}
     <fieldset disabled={!settings.notifications}>
       <legend>Notify about</legend>
       {#each notifyKinds as kind (kind.key)}
@@ -234,6 +252,7 @@
     </label>
   </section>
 
+  {#if !mobile}
   <section class="panel">
     <h2>Running in the background</h2>
     <label class="row">
@@ -251,6 +270,7 @@
     {/if}
     <button class="btn" onclick={() => api.quit()}>Quit Birdfeeder</button>
   </section>
+  {/if}
 
   <section class="panel">
     <h2>Updates</h2>
@@ -264,22 +284,24 @@
           <small>At launch and every few hours, from this project's releases on GitHub.</small>
         </span>
       </label>
-      <label class="row">
-        <input
-          type="checkbox"
-          class="switch"
-          bind:checked={settings.install_updates}
-          onchange={save}
-          disabled={!settings.check_updates}
-        />
-        <span>
-          Install updates automatically
-          <small>
-            Installs a new release when it is found, then restarts. A .deb or .rpm update asks for
-            your password, so it waits until the window is open.
-          </small>
-        </span>
-      </label>
+      {#if !mobile}
+        <label class="row">
+          <input
+            type="checkbox"
+            class="switch"
+            bind:checked={settings.install_updates}
+            onchange={save}
+            disabled={!settings.check_updates}
+          />
+          <span>
+            Install updates automatically
+            <small>
+              Installs a new release when it is found, then restarts. A .deb or .rpm update asks
+              for your password, so it waits until the window is open.
+            </small>
+          </span>
+        </label>
+      {/if}
       <div class="update">
         <p>
           {#if watcher.update}
@@ -295,7 +317,9 @@
             disabled={watcher.updateProgress !== null}
             onclick={() => watcher.installUpdate()}
           >
-            {watcher.updateProgress === null
+            {!watcher.update.install
+              ? "Download"
+              : watcher.updateProgress === null
               ? "Install and restart"
               : watcher.updateProgress > 0
                 ? `Downloading ${Math.round(watcher.updateProgress * 100)}%`
@@ -483,6 +507,16 @@
     border: 0;
     background: none;
     color: var(--accent);
+  }
+
+  .blocked {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
   }
 
   @media (pointer: coarse) {

@@ -282,3 +282,60 @@ pub async fn start_over(app: AppHandle, state: State<'_, AppState>) -> CmdResult
     state.wake.notify_one();
     Ok(())
 }
+
+#[derive(Debug, Serialize)]
+pub struct Release {
+    pub version: String,
+    pub notes: String,
+}
+
+/// The newest release, when it is newer than this copy. A phone cannot install
+/// it by itself, so it only learns that one exists.
+#[tauri::command]
+pub async fn latest_release(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Option<Release>> {
+    #[derive(serde::Deserialize)]
+    struct Manifest {
+        version: String,
+        #[serde(default)]
+        notes: String,
+    }
+    if state.demo {
+        return Ok(None);
+    }
+    let manifest: Manifest = state
+        .http
+        .get(LATEST_MANIFEST)
+        .send()
+        .await
+        .and_then(|resp| resp.error_for_status())
+        .map_err(fail)?
+        .json()
+        .await
+        .map_err(fail)?;
+    let current = app.package_info().version.to_string();
+    Ok(newer(&manifest.version, &current).then_some(Release {
+        version: manifest.version,
+        notes: manifest.notes,
+    }))
+}
+
+/// The manifest the desktop updater reads, which names the newest version.
+const LATEST_MANIFEST: &str =
+    "https://github.com/Gingerbreadfork/birdfeeder/releases/latest/download/latest.json";
+
+/// Compares dotted version numbers. A pre-release suffix is ignored.
+pub fn newer(candidate: &str, current: &str) -> bool {
+    let parts = |v: &str| -> Vec<u64> {
+        v.trim_start_matches('v')
+            .split(['-', '+'])
+            .next()
+            .unwrap_or_default()
+            .split('.')
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
+    parts(candidate) > parts(current)
+}
