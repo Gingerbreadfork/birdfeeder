@@ -90,9 +90,73 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage \
             src-tauri/target/release/bundle/appimage/*.sig
 
-  # The updater reads this file from the latest release.
+  android:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install the NDK
+        run: sdkmanager --install "ndk;27.2.12479018"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # The key signs every release, so a newer APK installs over an older one.
+      - name: Write the signing key
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE" | base64 --decode > "$RUNNER_TEMP/birdfeeder.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/birdfeeder.jks"
+            echo "password=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=birdfeeder"
+          } > src-tauri/gen/android/keystore.properties
+
+      # Phones run arm64 or armv7; x86_64 covers Chromebooks and emulators.
+      - name: Build the APK
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
+        run: pnpm tauri android build --apk --target aarch64 --target armv7 --target x86_64
+
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="Birdfeeder_${TAG#v}_android.apk"
+          cp src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$apk"
+          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner" verify "$apk"
+          gh release upload "$TAG" --clobber "$apk"
+
+  # The updater reads this file from the latest release, and phones learn of a new version
+  # from it, so it waits until every package is attached.
   manifest:
-    needs: linux-packages
+    needs: [linux-packages, android]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
