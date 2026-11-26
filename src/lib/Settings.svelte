@@ -167,7 +167,7 @@
 
   <section class="panel">
     <h2>Appearance</h2>
-    <div class="theme" role="radiogroup" aria-label="Theme">
+    <div class="theme segmented" role="radiogroup" aria-label="Theme">
       {#each themes as theme (theme.id)}
         <label class={{ on: settings.theme === theme.id }}>
           <input type="radio" name="theme" value={theme.id} bind:group={settings.theme} onchange={save} />
@@ -553,44 +553,6 @@
     border: 0;
     background: none;
     color: var(--accent);
-  }
-
-  .theme {
-    display: inline-flex;
-    padding: 3px;
-    border: 1px solid var(--line-strong);
-    border-radius: calc(var(--radius) + 3px);
-    background: var(--bg);
-  }
-
-  .theme label {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    height: calc(var(--tap) - 6px);
-    padding: 0 14px;
-    border-radius: var(--radius);
-    color: var(--ink-2);
-    font-size: var(--fs-sm);
-    font-weight: 550;
-    cursor: pointer;
-  }
-
-  .theme label.on {
-    background: var(--surface);
-    box-shadow: 0 1px 2px #0000002a;
-    color: var(--ink);
-  }
-
-  .theme input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .theme label:has(input:focus-visible) {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
   }
 
   @media (max-width: 600px) {
