@@ -1,19 +1,24 @@
 package io.github.gingerbreadfork.birdfeeder
 
+import android.content.ClipData
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Base64
+import android.util.Log
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.FileProvider
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewCompat
+import java.io.File
 
 class MainActivity : TauriActivity() {
   /** The theme chosen in the app: "light", "dark", or "system". */
@@ -63,12 +68,13 @@ class MainActivity : TauriActivity() {
     }
   }
 
-  // The page says which theme was chosen in Settings, so the bars and window can match it.
+  // What the page can ask of the phone.
   override fun onWebViewCreate(webView: WebView) {
-    webView.addJavascriptInterface(ThemeChoice(), "BirdfeederAndroid")
+    webView.addJavascriptInterface(FromPage(), "BirdfeederAndroid")
   }
 
-  private inner class ThemeChoice {
+  private inner class FromPage {
+    // The page says which theme was chosen in Settings, so the bars and window can match it.
     @JavascriptInterface
     fun setTheme(chosen: String) {
       if (chosen !in listOf("light", "dark", "system")) return
@@ -76,6 +82,33 @@ class MainActivity : TauriActivity() {
       runOnUiThread {
         theme = chosen
         matchTheme()
+      }
+    }
+
+    // Opens the share sheet with a PNG picture the page has drawn, and a line of text beside it.
+    // The picture waits in the cache, where the share sheet may read it and Android may clear it.
+    @JavascriptInterface
+    fun shareImage(name: String, base64: String, text: String): Boolean {
+      return try {
+        val folder = File(cacheDir, "cards")
+        folder.deleteRecursively()
+        folder.mkdirs()
+        val plain = name.filter { it.isLetterOrDigit() || it in "-_." }.trim('.').take(80)
+        val picture = File(folder, "${plain.ifEmpty { "repository" }}-card.png")
+        picture.writeBytes(Base64.decode(base64, Base64.DEFAULT))
+        val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.fileprovider", picture)
+        val send = Intent(Intent.ACTION_SEND).apply {
+          type = "image/png"
+          putExtra(Intent.EXTRA_STREAM, uri)
+          putExtra(Intent.EXTRA_TEXT, text)
+          clipData = ClipData.newRawUri(null, uri)
+          addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runOnUiThread { startActivity(Intent.createChooser(send, null)) }
+        true
+      } catch (e: Exception) {
+        Log.w("Birdfeeder", "Could not share the card", e)
+        false
       }
     }
   }

@@ -86,6 +86,8 @@ class Watcher {
   repos = $state.raw<RepoRow[] | null>(null);
   downloads = $state.raw<Downloads | null>(null);
   detail = $state.raw<RepoDetail | null>(null);
+  /** Whether the card for the open repository is on screen. */
+  card = $state(false);
   lifeList = $state.raw<LifeList | null>(null);
 
   /** The event being celebrated on screen right now. */
@@ -422,9 +424,9 @@ class Watcher {
     this.closeRepo();
   }
 
-  /** How many steps back lead to the first tab: one out of a repository page, one out of a tab. */
+  /** How many steps back lead to the first tab: one each out of a card, a repository page and a tab. */
   private get depth(): number {
-    return (this.page !== START ? 1 : 0) + (this.detail || this.wanted ? 1 : 0);
+    return (this.page !== START ? 1 : 0) + (this.detail || this.wanted ? 1 : 0) + (this.card ? 1 : 0);
   }
 
   /**
@@ -455,7 +457,8 @@ class Watcher {
     } else {
       this.celebration = null;
       while (this.depth > this.entries) {
-        if (this.detail || this.wanted) this.closeRepo();
+        if (this.card) this.card = false;
+        else if (this.detail || this.wanted) this.closeRepo();
         else this.go(START);
       }
     }
@@ -507,12 +510,16 @@ class Watcher {
   private async loadDetail(id: string) {
     this.wanted = id;
     const detail = await api.repoDetail(id);
-    if (this.wanted === id) this.detail = detail;
+    if (this.wanted !== id) return;
+    this.detail = detail;
+    // A repository that has gone takes its card with it.
+    if (!detail) this.card = false;
   }
 
   closeRepo() {
     this.wanted = null;
     this.detail = null;
+    this.card = false;
   }
 
   syncNow() {

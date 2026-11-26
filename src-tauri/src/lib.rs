@@ -124,6 +124,7 @@ pub fn run() {
             commands::overview,
             commands::repos,
             commands::repo_detail,
+            commands::save_card,
             commands::downloads,
             commands::life_list,
             commands::marks,

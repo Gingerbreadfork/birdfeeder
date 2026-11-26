@@ -1361,6 +1361,35 @@ fn a_release_is_newer_by_its_numbers_not_its_text() {
 }
 
 #[test]
+fn a_card_is_named_after_its_repository() {
+    use crate::commands::card_stem;
+    assert_eq!(card_stem("seedcake"), "seedcake-card");
+    assert_eq!(card_stem("my.tool_2"), "my.tool_2-card");
+    assert_eq!(card_stem("../../etc/passwd"), "etc-passwd-card");
+    assert_eq!(card_stem(".github"), "github-card");
+    assert_eq!(card_stem(""), "repository-card");
+    assert_eq!(card_stem("..."), "repository-card");
+}
+
+#[test]
+fn a_saved_card_never_replaces_another() {
+    use crate::commands::write_new;
+    let dir = std::env::temp_dir().join(format!("birdfeeder-cards-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+
+    let first = write_new(&dir, "seedcake-card", "png", b"one").unwrap();
+    let second = write_new(&dir, "seedcake-card", "png", b"two").unwrap();
+    let third = write_new(&dir, "seedcake-card", "png", b"three").unwrap();
+    assert_eq!(first, dir.join("seedcake-card.png"));
+    assert_eq!(second, dir.join("seedcake-card-2.png"));
+    assert_eq!(third, dir.join("seedcake-card-3.png"));
+    assert_eq!(std::fs::read(&first).unwrap(), b"one");
+    assert_eq!(std::fs::read(&second).unwrap(), b"two");
+
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn notifications_follow_the_settings_and_fold_a_burst() {
     use crate::settings::Settings;
     use crate::watch::to_show;

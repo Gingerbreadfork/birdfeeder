@@ -3,6 +3,7 @@
   import Figures, { type Figure } from "./Figures.svelte";
   import LineChart from "./LineChart.svelte";
   import ReleaseList from "./ReleaseList.svelte";
+  import RepoCard from "./RepoCard.svelte";
   import { open } from "./api";
   import { num, plural } from "./format";
   import { repoName } from "./kinds";
@@ -50,6 +51,8 @@
   }
 </script>
 
+{#if watcher.card}<RepoCard {detail} />{/if}
+
 <nav>
   <button class="btn quiet" onclick={() => watcher.closeRepo()}>
     <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -66,6 +69,7 @@
       {#if repo.description}<p class="about selectable">{repo.description}</p>{/if}
     </div>
     <div class="actions">
+      <button class="btn" onclick={() => (watcher.card = true)}>Make a card</button>
       <button class="btn" onclick={showActivity}>Show in activity list</button>
       <button class="btn" onclick={() => open(repo.url)}>Open on GitHub</button>
     </div>

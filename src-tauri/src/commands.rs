@@ -1,3 +1,7 @@
+use std::fs::OpenOptions;
+use std::io::{ErrorKind, Write};
+use std::path::{Path, PathBuf};
+
 use rusqlite::Connection;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -128,6 +132,84 @@ pub async fn repo_detail(app: AppHandle, id: String) -> CmdResult<Option<views::
         views::repo_detail(conn, &id, &ignore)
     })
     .await
+}
+
+/// How every PNG file begins.
+const PNG_START: &[u8] = b"\x89PNG\r\n\x1a\n";
+/// A card is a fraction of this size.
+const CARD_LIMIT: usize = 16 * 1024 * 1024;
+const NOT_A_PICTURE: &str = "The card did not arrive as a picture.";
+
+/// Saves a repository's card to the downloads folder and returns where it went.
+/// The picture is the request's body, and the repository's name comes in a header.
+#[tauri::command]
+pub async fn save_card(app: AppHandle, request: tauri::ipc::Request<'_>) -> CmdResult<String> {
+    let tauri::ipc::InvokeBody::Raw(png) = request.body() else {
+        return Err(NOT_A_PICTURE.into());
+    };
+    if !png.starts_with(PNG_START) || png.len() > CARD_LIMIT {
+        return Err(NOT_A_PICTURE.into());
+    }
+    let repo = request
+        .headers()
+        .get("card-name")
+        .and_then(|name| name.to_str().ok())
+        .unwrap_or_default();
+    let stem = card_stem(repo);
+    let paths = app.path();
+    let dir = paths
+        .download_dir()
+        .or_else(|_| paths.home_dir())
+        .map_err(fail)?;
+    let png = png.clone();
+    tauri::async_runtime::spawn_blocking(move || write_new(&dir, &stem, "png", &png))
+        .await
+        .map_err(fail)?
+        .map(|path| path.to_string_lossy().into_owned())
+        .map_err(fail)
+}
+
+/// The file name for a repository's card, without its extension. Any character a
+/// file system might refuse becomes a dash.
+pub fn card_stem(repo: &str) -> String {
+    let name: String = repo
+        .chars()
+        .take(80)
+        .map(|c| match c {
+            c if c.is_ascii_alphanumeric() => c,
+            '-' | '_' | '.' => c,
+            _ => '-',
+        })
+        .collect();
+    let name = name.trim_matches(['.', '-']);
+    if name.is_empty() {
+        "repository-card".into()
+    } else {
+        format!("{name}-card")
+    }
+}
+
+/// Writes a file under the first name not already taken in the folder: `stem.ext`,
+/// then `stem-2.ext` and so on. Returns where it went.
+pub fn write_new(dir: &Path, stem: &str, ext: &str, bytes: &[u8]) -> std::io::Result<PathBuf> {
+    std::fs::create_dir_all(dir)?;
+    let mut n = 1;
+    loop {
+        let name = if n == 1 {
+            format!("{stem}.{ext}")
+        } else {
+            format!("{stem}-{n}.{ext}")
+        };
+        let path = dir.join(name);
+        match OpenOptions::new().write(true).create_new(true).open(&path) {
+            Ok(mut file) => {
+                file.write_all(bytes)?;
+                return Ok(path);
+            }
+            Err(e) if e.kind() == ErrorKind::AlreadyExists => n += 1,
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 #[tauri::command]

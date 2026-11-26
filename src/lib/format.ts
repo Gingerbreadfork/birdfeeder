@@ -6,6 +6,7 @@ const dayYearFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "
 const shortFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
 const shortYearFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
 const monthFmt = new Intl.DateTimeFormat(undefined, { month: "short" });
+const monthYearFmt = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
 
 export function num(n: number): string {
   return whole.format(n);
@@ -61,6 +62,16 @@ export function shortDate(at: string, now = new Date()): string {
 
 export function monthName(day: string): string {
   return monthFmt.format(parseDay(day));
+}
+
+/** A day's month and year, such as March 2021. */
+export function monthYear(day: string): string {
+  return monthYearFmt.format(parseDay(day));
+}
+
+/** A date written out in full, with its year. */
+export function fullDate(at: Date): string {
+  return dayYearFmt.format(at);
 }
 
 export function ago(iso: string | null, now = Date.now()): string {

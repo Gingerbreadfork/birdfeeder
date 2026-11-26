@@ -98,6 +98,18 @@ the life list get a moment of their own, with the bird and a scatter of seed.
 **Draws your star history.** For each repository and for the whole account, back to the
 first star rather than the day you installed the app.
 
+**Makes a card to show off.** A repository's page can draw a card of it: its name, the star
+count over the hill its history makes, the best of its other figures, and a QR code that
+opens the repository. Save it as a picture or copy it into a message, in light or dark. On
+a phone it goes to the share sheet, with the link beside it.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/card-dark.png">
+    <img src="docs/card-light.png" width="380" alt="A card for the repository seedcake: its name, 1,284 stars over a hill drawn from its star history with the bird standing on top, three more figures, and a QR code">
+  </picture>
+</p>
+
 **Marks the milestones.** The first star, the hundredth, the ten-thousandth download.
 
 **Watches Hacker News, if you ask.** Off by default. Switch it on and Birdfeeder finds

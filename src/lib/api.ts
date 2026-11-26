@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import type {
   AuthInfo,
   Downloads,
@@ -25,6 +25,9 @@ export const api = {
   overview: (days: number) => invoke<Overview>("overview", { days }),
   repos: () => invoke<RepoRow[]>("repos"),
   repoDetail: (id: string) => invoke<RepoDetail | null>("repo_detail", { id }),
+  /** Saves a card's PNG picture to the downloads folder, and answers with where it went. */
+  saveCard: (repo: string, png: Uint8Array) =>
+    invoke<string>("save_card", png, { headers: { "card-name": repo } }),
   downloads: () => invoke<Downloads>("downloads"),
   lifeList: () => invoke<LifeList>("life_list"),
   settings: () => invoke<Settings>("settings"),
@@ -44,6 +47,11 @@ export const api = {
   setForeground: (visible: boolean) => invoke<void>("set_foreground", { visible }),
   latestRelease: () => invoke<{ version: string; notes: string } | null>("latest_release"),
 };
+
+/** Shows a file in the file manager. */
+export function reveal(path: string) {
+  void revealItemInDir(path);
+}
 
 /** Opens a link in the system browser. */
 export function open(url: string | null | undefined) {

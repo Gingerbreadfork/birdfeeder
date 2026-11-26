@@ -1,14 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { mobile } from "./platform";
+import { android, mobile } from "./platform";
 import type { Theme } from "./types";
 
 /** The theme last chosen, kept for the first frame of the next start. */
 const REMEMBERED = "birdfeeder.theme";
-
-/** What the phone's activity offers the page, to colour its status bar and window to match. */
-interface AndroidTheme {
-  setTheme(theme: string): void;
-}
 
 /** Shows the page light, dark, or as the system is, and tells the window around it. */
 export function applyTheme(theme: Theme) {
@@ -21,12 +16,18 @@ export function applyTheme(theme: Theme) {
     // Only the first frame of the next start relies on it.
   }
   if (mobile) {
-    (window as { BirdfeederAndroid?: AndroidTheme }).BirdfeederAndroid?.setTheme(theme);
+    android?.setTheme(theme);
   } else {
     getCurrentWindow()
       .setTheme(theme === "system" ? null : theme)
       .catch(() => {});
   }
+}
+
+/** Whether the page is showing its dark theme right now. */
+export function showsDark(): boolean {
+  const chosen = document.documentElement.dataset.theme;
+  return chosen ? chosen === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
 /** Applies the theme chosen last time before anything is drawn, so it does not flash. */

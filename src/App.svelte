@@ -40,9 +40,10 @@
       watcher.status.error_kind === "account",
   );
 
-  /** Steps back one level: out of a celebration, a repository page, then the filters. */
+  /** Steps back one level: out of a celebration, a card, a repository page, then the filters. */
   function back(): boolean {
     if (watcher.celebration) watcher.celebration = null;
+    else if (watcher.card) watcher.card = false;
     else if (watcher.detail) watcher.closeRepo();
     else if (watcher.filtered) watcher.clearFilters();
     else return false;
@@ -79,7 +80,7 @@
 
   // The back gesture follows the screen.
   $effect(() => {
-    void [watcher.page, watcher.detail];
+    void [watcher.page, watcher.detail, watcher.card];
     watcher.keepBackInStep();
   });
 
